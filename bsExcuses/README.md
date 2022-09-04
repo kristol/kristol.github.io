@@ -1,0 +1,1 @@
+A really useful website when you don't want to go to some event. So you need a really good excuse.
