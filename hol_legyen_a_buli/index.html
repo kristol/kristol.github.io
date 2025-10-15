@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hol legyen a buli?</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>Hol legyen a buli?</h1>
+        <form id="partyQuiz" class="party-quiz">
+            <div class="quiz-step">
+                <div class="quiz-question animated" id="q1">
+                    <p>Mi a kedvenc italod ma este?</p>
+                    <label><input type="radio" name="q1" value="chill"> Tea vagy limonádé</label><br>
+                    <label><input type="radio" name="q1" value="chill"> Sör vagy fröccs</label><br>
+                    <label><input type="radio" name="q1" value="party"> Koktél</label><br>
+                    <label><input type="radio" name="q1" value="hardcore"> Shot vagy energiaital</label>
+                </div>
+            </div>
+            <div class="quiz-step">
+                <div class="quiz-question animated" id="q2" style="display:none">
+                    <p>Miért mész bulizni?</p>
+                    <label><input type="radio" name="q2" value="chill"> Csak beszélgetni</label><br>
+                    <label><input type="radio" name="q2" value="chill"> Nyugis zene, lazulás</label><br>
+                    <label><input type="radio" name="q2" value="party"> Táncolni, ismerkedni</label><br>
+                    <label><input type="radio" name="q2" value="hardcore"> Teljes extázis, hajnalig</label>
+                </div>
+            </div>
+            <div class="quiz-step">
+                <div class="quiz-question animated" id="q3" style="display:none">
+                    <p>Melyik zene szóljon?</p>
+                    <label><input type="radio" name="q3" value="chill"> Jazz vagy chillhop</label><br>
+                    <label><input type="radio" name="q3" value="chill"> Akusztikus, retro</label><br>
+                    <label><input type="radio" name="q3" value="party"> Pop, disco, slágerek</label><br>
+                    <label><input type="radio" name="q3" value="hardcore"> Techno, drum&bass</label>
+                </div>
+            </div>
+            <button type="button" id="quizSubmit" class="direction-btn" style="display:none">Hol bulizom?</button>
+        </form>
+        <div id="place" class="place"></div>
+        <div id="map" class="map"></div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
