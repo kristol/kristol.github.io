@@ -7,8 +7,10 @@ class PartyInvitation {
 
         // Formspree configuration
         this.formspreeConfig = {
-            rsvpEndpoint: 'https://formspree.io/f/mrboebda',
-            playlistEndpoint: 'https://formspree.io/f/xblpdlbz',
+            //rsvpEndpoint: 'https://formspree.io/f/mrboebda',
+            //playlistEndpoint: 'https://formspree.io/f/xblpdlbz',
+            rsvpEndpoint: '',
+            playlistEndpoint: ''
         };
         
         // Mystery Hunt configuration
@@ -170,7 +172,25 @@ class PartyInvitation {
                     this.setupCountdownClickListener();
                 }
             } else {
-                document.getElementById('countdown').innerHTML = '<h2>🎉 A BULI ELKEZDŐDÖTT! 🎉</h2>';
+                // Party has started - keep showing 00:00:00:00 instead of hiding the clock
+                const daysElement = document.getElementById('days');
+                const hoursElement = document.getElementById('hours');
+                const minutesElement = document.getElementById('minutes');
+                const secondsElement = document.getElementById('seconds');
+                
+                if (daysElement) daysElement.textContent = '00';
+                if (hoursElement) hoursElement.textContent = '00';
+                if (minutesElement) minutesElement.textContent = '00';
+                if (secondsElement) secondsElement.textContent = '00';
+                
+                // Add party started message above the countdown (only once)
+                const countdownSection = document.querySelector('.countdown-section');
+                if (countdownSection && !countdownSection.querySelector('.party-started-message')) {
+                    const partyMessage = document.createElement('div');
+                    partyMessage.className = 'party-started-message';
+                    partyMessage.innerHTML = '<h4 style="color: #ff6b6b; margin-bottom: 1rem; animation: pulse 2s infinite;">🎉 A BULI ELKEZDŐDÖTT! 🎉</h4>';
+                    countdownSection.insertBefore(partyMessage, countdownSection.querySelector('.countdown'));
+                }
                 
                 // 🎯 Party started - setup click listener for heist if Stage 1 complete
                 if (this.mysteryHunt.heistProgress.stage1_rsvp && !this.mysteryHunt.heistProgress.stage2_final) {
@@ -1380,7 +1400,7 @@ class PartyInvitation {
 
     createEpicParticleExplosion(container) {
         const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#f9ca24', '#6c5ce7', '#ff9ff3', '#54a0ff'];
-        const shapes = ['⭐', '💎', '�', '⚡', '✨', '�', '🌟'];
+        const shapes = ['⭐', '💎', '🔸', '⚡', '✨', '🔹', '🌟'];
         
         // Create 300 particles for maximum effect
         for (let i = 0; i < 300; i++) {
