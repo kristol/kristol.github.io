@@ -1,0 +1,1153 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', Arial, sans-serif;
+    background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #f9ca24 75%, #f0932b 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    min-height: 100vh;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+/* ==================== MYSTERY HUNT SIDEBAR ==================== */
+.mystery-hunt-sidebar {
+    position: fixed;
+    right: -280px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 300px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px 0 0 20px;
+    padding: 20px;
+    transition: right 0.3s ease;
+    z-index: 1000;
+    font-family: 'Orbitron', Arial, sans-serif;
+}
+
+.mystery-hunt-sidebar.open {
+    right: 0;
+}
+
+.sidebar-toggle {
+    position: absolute;
+    left: -50px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px 0 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.5em;
+    transition: background 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-content h4 {
+    color: #fff;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.emoji-collection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.emoji-slot, .secret-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.emoji-shadow {
+    font-size: 2em;
+    opacity: 0.3;
+    filter: blur(2px);
+    transition: all 0.3s ease;
+}
+
+.collected-emoji {
+    font-size: 2em;
+    position: absolute;
+    animation: collectPulse 0.5s ease;
+}
+
+.secret-slot {
+    height: auto;
+    min-height: 50px;
+    padding: 10px;
+}
+
+.secret-shadow {
+    font-size: 2em;
+    opacity: 0.3;
+    filter: blur(2px);
+}
+
+.secret-message {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+}
+
+.secret-content {
+    background: linear-gradient(45deg, #ff6b6b, #f9ca24, #4ecdc4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    font-size: 0.9em;
+    animation: rainbow-flow 2s linear infinite, glow 1s ease infinite;
+}
+
+@keyframes collectPulse {
+    0% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+    100% { transform: scale(1) rotate(360deg); opacity: 1; }
+}
+
+@keyframes mysteryAppear {
+    0% { 
+        transform: scale(0) rotate(0deg); 
+        opacity: 0;
+        filter: blur(10px);
+    }
+    50% { 
+        transform: scale(1.3) rotate(180deg); 
+        opacity: 0.8;
+        filter: blur(2px);
+    }
+    100% { 
+        transform: scale(1) rotate(360deg); 
+        opacity: 1;
+        filter: blur(0px);
+    }
+}
+
+@keyframes bigEmojiCollect {
+    0% { 
+        transform: scale(0) rotate(0deg); 
+        opacity: 0;
+    }
+    30% { 
+        transform: scale(1.2) rotate(180deg); 
+        opacity: 1;
+    }
+    60% { 
+        transform: scale(0.9) rotate(360deg); 
+        opacity: 1;
+    }
+    100% { 
+        transform: scale(1) rotate(720deg); 
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes slotCollectAnimation {
+    0% { 
+        transform: scale(1); 
+        background: rgba(255, 255, 255, 0.1);
+    }
+    25% { 
+        transform: scale(1.1); 
+        background: rgba(108, 255, 108, 0.3);
+        border: 2px solid #6cff6c;
+    }
+    50% { 
+        transform: scale(1.05); 
+        background: rgba(108, 255, 108, 0.5);
+    }
+    75% { 
+        transform: scale(1.1); 
+        background: rgba(108, 255, 108, 0.3);
+    }
+    100% { 
+        transform: scale(1); 
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+    }
+}
+
+@keyframes floatPulse {
+    0%, 100% { 
+        transform: translateY(0px) scale(1); 
+        opacity: 0.8;
+    }
+    50% { 
+        transform: translateY(-10px) scale(1.1); 
+        opacity: 1;
+    }
+}
+
+/* Big emoji collection overlay styles */
+.big-emoji-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.big-emoji-content {
+    text-align: center;
+    color: white;
+    max-width: 400px;
+    padding: 2rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    animation: fadeInUp 0.5s ease;
+}
+
+.big-emoji {
+    font-size: 8rem;
+    margin: 1rem;
+    animation: bigEmojiCollect 2s ease infinite;
+}
+
+.big-emoji-overlay h2 {
+    color: #ff6b6b;
+    margin: 1rem 0;
+    font-size: 2rem;
+}
+
+.big-emoji-overlay p {
+    margin: 1rem 0;
+    font-size: 1.2rem;
+}
+
+.collect-btn {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+
+.collect-btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(45deg, #ff8e8e, #ff6b6b);
+}
+
+/* Mobile responsiveness for sidebar */
+@media (max-width: 768px) {
+    .mystery-hunt-sidebar {
+        width: 250px;
+        right: -230px;
+    }
+    
+    .sidebar-toggle {
+        left: -40px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2em;
+    }
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Header Styles */
+.title-section {
+    margin-bottom: 50px;
+    animation: fadeInDown 1s ease-out;
+}
+
+.party-title {
+    font-family: 'Pacifico', cursive;
+    font-size: 3.5em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    animation: glow 2s ease-in-out infinite alternate, rainbow 3s linear infinite;
+}
+
+.subtitle-extra {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    opacity: 0.9;
+    font-weight: bold;
+    color: #fff200;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.cringe-meter {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px 25px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    margin-top: 20px;
+    font-weight: bold;
+    font-size: 1.1em;
+    animation: flashColors 1.5s linear infinite;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+@keyframes rainbow {
+    0% { color: #ff6b6b; }
+    16% { color: #4ecdc4; }
+    32% { color: #45b7d1; }
+    48% { color: #f9ca24; }
+    64% { color: #f0932b; }
+    80% { color: #6c5ce7; }
+    100% { color: #ff6b6b; }
+}
+
+@keyframes flashColors {
+    0% { background: rgba(255, 107, 107, 0.3); }
+    25% { background: rgba(78, 205, 196, 0.3); }
+    50% { background: rgba(69, 183, 209, 0.3); }
+    75% { background: rgba(249, 202, 36, 0.3); }
+    100% { background: rgba(255, 107, 107, 0.3); }
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 20px rgba(255, 255, 255, 0.8); }
+    to { text-shadow: 0 0 30px rgba(255, 255, 255, 1), 0 0 40px rgba(255, 255, 255, 0.8); }
+}
+
+.party-subtitle {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.date-time {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 20px;
+}
+
+.date, .time {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px 25px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+/* Games Section */
+.games-section {
+    margin-bottom: 40px;
+}
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.game-card {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 20px;
+    border-radius: 15px;
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.game-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.game-icon {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.game-card h4 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    color: #fff;
+    text-align: center;
+}
+
+.game-card p {
+    opacity: 0.9;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* Meme Section */
+.meme-section {
+    margin-bottom: 40px;
+}
+
+.meme-quotes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.meme-quote {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: bold;
+    text-align: center;
+    animation: wiggle 2s ease-in-out infinite;
+    cursor: pointer;
+}
+
+.meme-quote:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+}
+
+@keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(1deg); }
+    75% { transform: rotate(-1deg); }
+}
+
+/* Bring Section */
+.bring-section {
+    margin-bottom: 40px;
+}
+
+.bring-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.bring-item {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 15px 20px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    border-left: 4px solid #f9ca24;
+    transition: transform 0.3s ease;
+}
+
+.bring-item:hover {
+    transform: translateX(10px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Flash and Special Effects */
+.flash {
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0%, 50% { opacity: 1; }
+    25%, 75% { opacity: 0.3; }
+}
+
+/* Cringe Meter Styles */
+.cringe-meter {
+    background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+    background-size: 300% 300%;
+    animation: gradient-move 3s ease infinite;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: bold;
+    display: inline-block;
+    margin: 10px 0;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.party-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.detail-card {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 30px 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.detail-card:hover {
+    transform: translateY(-10px) scale(1.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.detail-card .icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+.detail-card h3 {
+    font-size: 1.3em;
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.detail-card p {
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+/* RSVP Section */
+.rsvp-section h3, .countdown-section h3, .playlist-section h3 {
+    font-size: 2em;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.rsvp-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.name-input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.name-input-group label {
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.name-input {
+    padding: 12px 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    font-size: 1em;
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.name-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.name-input:focus {
+    outline: none;
+    border-color: #f9ca24;
+    box-shadow: 0 0 15px rgba(249, 202, 36, 0.3);
+}
+
+.name-input.small {
+    max-width: 150px;
+    margin-right: 10px;
+}
+
+.rsvp-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.rsvp-btn {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    font-family: 'Orbitron', Arial, sans-serif;
+}
+
+.yes-btn {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+    color: white;
+}
+
+.maybe-btn {
+    background: linear-gradient(45deg, #f9ca24, #f0932b);
+    color: white;
+}
+
+.no-btn {
+    background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+    color: white;
+}
+
+.rsvp-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.rsvp-btn:active {
+    transform: scale(0.95);
+}
+
+.rsvp-message {
+    font-size: 1.2em;
+    padding: 20px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    margin-top: 20px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.rsvp-message.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Countdown Styles */
+.countdown {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.time-unit {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 25px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    min-width: 100px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.time-unit span {
+    display: block;
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.time-unit label {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Playlist Section */
+.song-input-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.music-suggestions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+#song-input {
+    padding: 15px 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    font-size: 1em;
+    min-width: 250px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#song-input:focus {
+    border-color: #f9ca24;
+    box-shadow: 0 0 15px rgba(249, 202, 36, 0.3);
+}
+
+#song-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.add-btn {
+    padding: 15px 25px;
+    border: none;
+    border-radius: 25px;
+    background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+    color: white;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.add-btn:hover {
+    transform: scale(1.05);
+}
+
+.playlist {
+    list-style: none;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.playlist li {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    animation: slideInUp 0.5s ease-out;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Status Messages */
+.rsvp-status, .submission-status {
+    margin-top: 15px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.rsvp-status.show, .submission-status.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.rsvp-status.success, .submission-status.success {
+    background: rgba(108, 255, 108, 0.2);
+    border: 1px solid rgba(108, 255, 108, 0.5);
+    color: #6cff6c;
+}
+
+.rsvp-status.error, .submission-status.error {
+    background: rgba(255, 108, 108, 0.2);
+    border: 1px solid rgba(255, 108, 108, 0.5);
+    color: #ff6c6c;
+}
+
+.rsvp-status.warning, .submission-status.warning {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    color: #ffc107;
+}
+
+.playlist li .song-info {
+    flex: 1;
+    text-align: left;
+}
+
+.playlist li .remove-btn {
+    background: rgba(255, 107, 107, 0.8);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+/* Footer */
+.contact-info {
+    margin-top: 50px;
+    padding: 30px 0;
+}
+
+.contact-links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.contact-btn {
+    padding: 12px 25px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease;
+}
+
+.contact-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Confetti Animation */
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ff6b6b;
+    border-radius: 50%;
+    animation: confettiFall 3s linear forwards;
+}
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animated {
+    animation: slideInUp 0.8s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .party-title {
+        font-size: 2.5em;
+    }
+    
+    .date-time {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .party-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .rsvp-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .rsvp-btn {
+        width: 80%;
+        max-width: 300px;
+    }
+    
+    .countdown {
+        gap: 15px;
+    }
+    
+    .time-unit {
+        min-width: 80px;
+        padding: 15px;
+    }
+    
+    .time-unit span {
+        font-size: 1.8em;
+    }
+    
+    .music-suggestions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    #song-input {
+        width: 90%;
+        max-width: 300px;
+    }
+    
+    .contact-links {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    /* Mystery Hunt Mobile Fixes */
+    .mystery-hunt-sidebar {
+        width: 90vw;
+        right: -90vw;
+        left: auto;
+        top: 0;
+        transform: none;
+        height: 100vh;
+        border-radius: 0;
+        padding: 20px;
+        font-size: 0.9em;
+        /* overflow-y: auto; */
+        z-index: 1001;
+    }
+    
+    .mystery-hunt-sidebar.open {
+        right: 0;
+    }
+    
+    .sidebar-toggle {
+        position: fixed;
+        right: 0;
+        top: 50px;
+        /* left: auto; */
+        transform: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 10px 0 0 10px;
+        z-index: 1002;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    
+    .emoji-collection {
+        gap: 15px;
+        justify-content: center;
+    }
+    
+    .emoji-slot {
+        width: 60px;
+        height: 70px;
+    }
+    
+    .emoji-shadow, .collected-emoji {
+        font-size: 2em;
+    }
+    
+    /* Games Section Mobile */
+    .games-section {
+        padding: 15px;
+    }
+    
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .game-card {
+        padding: 15px;
+    }
+    
+    .cringe-meter {
+        padding: 15px;
+        font-size: 1em;
+    }
+    
+    /* Meme Quotes Mobile */
+    .meme-quotes-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .meme-quote {
+        padding: 12px;
+        font-size: 0.9em;
+    }
+}
+
+/* Mobile-specific media query for small screens */
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .party-title {
+        font-size: 2em;
+    }
+    
+    .party-subtitle {
+        font-size: 1em;
+    }
+    
+    .countdown {
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .time-unit {
+        min-width: 70px;
+        padding: 10px;
+    }
+    
+    .time-unit span {
+        font-size: 1.5em;
+    }
+    
+    .time-unit p {
+        font-size: 0.7em;
+    }
+    
+    .rsvp-btn {
+        padding: 12px 20px;
+        font-size: 0.9em;
+    }
+    
+    .mystery-hunt-sidebar {
+        width: 95vw;
+        right: -95vw;
+        padding: 15px;
+        z-index: 1001;
+    }
+    
+    .sidebar-toggle {
+        position: fixed;
+        right: 0;
+        top: 50px;
+        /* left: auto; */
+        width: 40px;
+        height: 40px;
+        font-size: 1em;
+        z-index: 1002;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        border-radius: 10px 0 0 10px;
+    }
+    
+    /* Input fields mobile */
+    #user-name, #song-input, #submitter-name {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px;
+        border-radius: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    
+    #user-name::placeholder, 
+    #song-input::placeholder, 
+    #submitter-name::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Fix button touch targets */
+    .rsvp-btn, .btn, button {
+        min-height: 44px; /* iOS recommended touch target */
+        touch-action: manipulation; /* Prevents zoom on double tap */
+    }
+    
+    /* Prevent horizontal scroll */
+    body {
+        overflow-x: hidden;
+    }
+    
+    /* Ensure splash screen is properly contained */
+    .victory-splash {
+        width: 100vw !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+    }
+}
