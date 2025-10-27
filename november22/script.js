@@ -68,12 +68,14 @@ class PartyInvitation {
         const sidebarToggle = document.getElementById('sidebar-toggle');
         sidebarToggle.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation(); // Prevent event bubbling
             this.toggleMysteryHunt();
         });
         
         // Add touch support for better mobile experience
         sidebarToggle.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            e.stopPropagation(); // Prevent event bubbling
             this.toggleMysteryHunt();
         });
     }
@@ -712,12 +714,42 @@ class PartyInvitation {
         });
         
         document.body.appendChild(backdrop);
+        
+        // Also make the sidebar itself clickable to close
+        const sidebar = document.getElementById('mystery-sidebar');
+        const toggleButton = document.getElementById('sidebar-toggle');
+        
+        const sidebarCloseHandler = (e) => {
+            // Don't close if clicking on the toggle button
+            if (e.target === toggleButton || toggleButton.contains(e.target)) {
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleMysteryHunt();
+        };
+        
+        // Add click and touch handlers to the sidebar
+        sidebar.addEventListener('click', sidebarCloseHandler);
+        sidebar.addEventListener('touchstart', sidebarCloseHandler);
+        
+        // Store handlers for cleanup
+        sidebar._closeHandler = sidebarCloseHandler;
     }
     
     removeBackdrop() {
         const backdrop = document.getElementById('sidebar-backdrop');
         if (backdrop) {
             backdrop.remove();
+        }
+        
+        // Remove sidebar close handlers
+        const sidebar = document.getElementById('mystery-sidebar');
+        if (sidebar && sidebar._closeHandler) {
+            sidebar.removeEventListener('click', sidebar._closeHandler);
+            sidebar.removeEventListener('touchstart', sidebar._closeHandler);
+            delete sidebar._closeHandler;
         }
     }
 
