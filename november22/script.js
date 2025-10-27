@@ -1205,6 +1205,45 @@ class PartyInvitation {
             justify-content: center;
             line-height: 1;
         `;
+
+        // Create countdown timer display
+        const countdownTimer = document.createElement('div');
+        countdownTimer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: #ffd700;
+            font-family: 'Orbitron', Arial, sans-serif;
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            z-index: 20003;
+            animation: timerPulse 1s ease infinite;
+        `;
+        
+        let timeLeft = 10;
+        countdownTimer.textContent = `Auto-close: ${timeLeft}s`;
+        
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            countdownTimer.textContent = `Auto-close: ${timeLeft}s`;
+            
+            if (timeLeft <= 3) {
+                countdownTimer.style.color = '#ff0000';
+                countdownTimer.style.borderColor = '#ff0000';
+                countdownTimer.style.textShadow = '0 0 10px #ff0000';
+                countdownTimer.style.animation = 'urgentFlash 0.5s ease infinite';
+            }
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+            }
+        }, 1000);
         
         // Mobile responsive adjustments
         const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -1220,6 +1259,12 @@ class PartyInvitation {
             claimButton.style.fontSize = '1.8rem';
             claimButton.style.top = '15px';
             claimButton.style.right = '15px';
+            
+            // Adjust countdown timer for mobile
+            countdownTimer.style.top = '15px';
+            countdownTimer.style.left = '15px';
+            countdownTimer.style.fontSize = '0.9rem';
+            countdownTimer.style.padding = '8px 12px';
             
             // Add swipe-to-close functionality for mobile
             let startY = 0;
@@ -1257,6 +1302,7 @@ class PartyInvitation {
         splashOverlay.appendChild(lightBeams);
         splashOverlay.appendChild(spotlight);
         splashOverlay.appendChild(particleContainer);
+        splashOverlay.appendChild(countdownTimer);
         
         mainContainer.appendChild(legendaryText);
         mainContainer.appendChild(emojiShowcase);
@@ -1274,7 +1320,10 @@ class PartyInvitation {
         this.simulateSoundEffects(splashOverlay);
 
         // Handle close button click
-        claimButton.addEventListener('click', () => {
+        const closeFunction = () => {
+            // Clear the countdown timer
+            clearInterval(timerInterval);
+            
             // Save that user has seen the splash
             localStorage.setItem('hasSeenVictorySplash', 'true');
             
@@ -1289,17 +1338,16 @@ class PartyInvitation {
                     }
                 }, 1000);
             }, 300);
-        });
+        };
+        
+        claimButton.addEventListener('click', closeFunction);
 
-        // Auto-close after 20 seconds with warning flash
+        // Auto-close after 10 seconds
         setTimeout(() => {
             if (splashOverlay.parentNode) {
-                splashOverlay.style.animation = 'warningFlash 2s ease, epicFadeOut 3s ease 2s';
-                setTimeout(() => {
-                    splashOverlay.remove();
-                }, 5000);
+                closeFunction();
             }
-        }, 20000);
+        }, 10000);
     }
 
     createEpicParticleExplosion(container) {
@@ -1718,6 +1766,28 @@ style.textContent = `
         50% { 
             transform: scale(1.1); 
             box-shadow: 0 0 30px rgba(255, 0, 0, 1), 0 8px 20px rgba(0,0,0,0.4);
+        }
+    }
+    
+    @keyframes timerPulse {
+        0%, 100% { 
+            transform: scale(1); 
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        50% { 
+            transform: scale(1.05); 
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+        }
+    }
+    
+    @keyframes urgentFlash {
+        0%, 100% { 
+            opacity: 1; 
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+        50% { 
+            opacity: 0.7; 
+            box-shadow: 0 0 40px rgba(255, 0, 0, 1);
         }
     }
     
