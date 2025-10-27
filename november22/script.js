@@ -952,10 +952,7 @@ class PartyInvitation {
                 // Add special collection animation
                 slot.style.animation = 'slotCollectAnimation 1s ease';
                 
-                // Open sidebar to show collection
-                setTimeout(() => {
-                    document.getElementById('mystery-sidebar').classList.add('open');
-                }, 500);
+                // Note: Sidebar no longer auto-opens on emoji collection
             }
         }
     }
@@ -997,8 +994,7 @@ class PartyInvitation {
         secretSlot.querySelector('.secret-shadow').style.display = 'none';
         secretSlot.querySelector('.secret-message').style.display = 'block';
         
-        // Open sidebar to show the message
-        document.getElementById('mystery-sidebar').classList.add('open');
+        // Note: Sidebar no longer auto-opens on secret message reveal
         
         // Check if victory splash has been shown before
         const hasSeenVictorySplash = localStorage.getItem('hasSeenVictorySplash');
