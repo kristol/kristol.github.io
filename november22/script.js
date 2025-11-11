@@ -171,6 +171,14 @@ class PartyInvitation {
                 if (seconds === 0 && this.mysteryHunt.heistProgress.stage1_rsvp && !this.mysteryHunt.heistProgress.stage2_final) {
                     this.setupCountdownClickListener();
                 }
+                // Update top-days-left element (shows days left) if present
+                const topDays = document.getElementById('top-days-left');
+                const topLabel = document.getElementById('top-days-label');
+                if (topDays) topDays.textContent = days.toString();
+                if (topLabel) topLabel.textContent = days === 1 ? 'nap van hátra a buliból' : 'nap van hátra a buliból';
+
+                // Update background intensity based on days left
+                this.setBackgroundIntensity(days);
             } else {
                 // Party has started - keep showing 00:00:00:00 instead of hiding the clock
                 const daysElement = document.getElementById('days');
@@ -196,11 +204,41 @@ class PartyInvitation {
                 if (this.mysteryHunt.heistProgress.stage1_rsvp && !this.mysteryHunt.heistProgress.stage2_final) {
                     this.setupCountdownClickListener();
                 }
+                // Update top-days-left to show 0 when party started
+                const topDays = document.getElementById('top-days-left');
+                const topLabel = document.getElementById('top-days-label');
+                if (topDays) topDays.textContent = '0';
+                if (topLabel) topLabel.textContent = 'a buli folyamatban van';
+
+                // Set maximal intensity when party started
+                this.setBackgroundIntensity(0);
             }
         };
 
         updateCountdown();
         setInterval(updateCountdown, 1000);
+    }
+
+    // Set body class to reflect background intensity based on days left
+    setBackgroundIntensity(days) {
+        try {
+            const body = document.body;
+            if (!body) return;
+
+            // Determine level: 0 (default) to 3 (max)
+            let level = 0;
+            if (days <= 0) level = 3;
+            else if (days <= 1) level = 3;
+            else if (days <= 3) level = 2;
+            else if (days <= 7) level = 1;
+            else level = 0;
+
+            // Remove existing bg-intensity classes
+            body.classList.remove('bg-intensity-0','bg-intensity-1','bg-intensity-2','bg-intensity-3');
+            body.classList.add(`bg-intensity-${level}`);
+        } catch (e) {
+            // silent failure
+        }
     }
 
     addSong() {
@@ -294,8 +332,25 @@ class PartyInvitation {
     }
 
     loadRSVPStatus() {
+        // Restore visual RSVP state on load without triggering focus or network actions
         if (this.rsvpStatus) {
-            this.handleRSVP(this.rsvpStatus);
+            const status = this.rsvpStatus;
+            // Update button styles
+            document.querySelectorAll('.rsvp-btn').forEach(btn => btn.classList.remove('selected'));
+            const btn = document.getElementById(`${status}-btn`);
+            if (btn) btn.classList.add('selected');
+
+            // Show a gentle message reflecting the saved RSVP (no focus)
+            const messages = {
+                yes: "🔥 SZIUUUU!!! Meg fogjuk dönteni a házat! 🏠💥 Készülj fel a LEGENDÁS ESTÉRE! 👑✨",
+                maybe: "🤔 Hmm... Na de azért próbálj meg jönni! Ez lesz az ÉV BULIJA! 🎲🍾 Ne maradj le! 💫",
+                no: "😭 MIIII?! Nem jössz?! De hát ez lesz a LEGJOBB BULI EVER! 💀🤡 Gondold át még egyszer! 🌈"
+            };
+            const messageElement = document.getElementById('rsvp-message');
+            if (messageElement) {
+                messageElement.textContent = messages[status] || '';
+                messageElement.classList.add('show');
+            }
         }
     }
 

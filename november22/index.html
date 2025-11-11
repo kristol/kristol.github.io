@@ -41,10 +41,14 @@
     <div class="container">
         <header class="title-section">
             <h1 class="party-title">SZIUUUU CSAPAT!!! 😱🥳🤪</h1>
-            <p class="subtitle-extra">KÉSZÜLJETEK, mert a memefelhő hullámot hoz! 🌊🚀</p>
+            <div class="subtitle-extra" id="top-days-container">
+                <div id="top-days-left">--</div>
+                <div id="top-days-label">nap van hátra a buliból 🎉</div>
+                <p>(remélem már az összes emoji összegyűlt)</p>
+            </div>
             <div class="date-time">
                 <div class="date">November 22 🎲🍾🔥</div>
-                <div class="time">18:00- 💥🌈💫</div>
+                <div class="time">19:00- 💥🌈💫</div>
             </div>
             <div class="cringe-meter">
                 <span>CRINGE-MUTATÓ: 100% 💖✨🤡</span>
@@ -190,6 +194,50 @@
                 <div id="submission-status" class="submission-status"></div>
             </section>
 
+            <!-- MEME TAP RUSH GAME SECTION -->
+            <section class="game-section">
+                <h3>MEME TAP RUSH — Játssz és mentsd a pontszámod! 🎯</h3>
+                <br>
+                <h4>Ha nem látod nyisd meg számítóról (sajni mar nem volt kedvem debugolni mobiloson hihi)</h4>
+                <div class="game-panel">
+                    <canvas id="meme-game-canvas" width="600" height="400" aria-label="Meme Tap Rush játék"></canvas>
+                    <div class="game-controls">
+                        <div class="game-info">
+                            <div>Score: <span id="game-score">0</span></div>
+                            <div>High: <span id="game-high">0</span></div> <p>Score to beat: 167**</p>
+                            <div id="game-timer">00:30</div>
+                        </div>
+                        <div class="game-buttons">
+                            <button id="game-start-btn" class="game-btn">Start</button>
+                            <button id="game-stop-btn" class="game-btn" disabled>Stop</button>
+                        </div>
+                    </div>
+                    <div class="game-explain" aria-hidden="false">
+                        <h4>Játékleírás</h4>
+                        <table class="explain-table">
+                            <thead>
+                                <tr><th>Emoji</th><th>Név</th><th>Pont</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>🤡</td><td>Clown</td><td>+1–4</td></tr>
+                                <tr><td>💀</td><td>Skull</td><td>-5</td></tr>
+                                <tr><td>⏰</td><td>Clock</td><td>+1–4</td></tr>
+                                <tr><td>🔥</td><td>Fire</td><td>+5</td></tr>
+                                <tr><td>🎉</td><td>Party</td><td>+1–4</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="game-note">A játék 30 másodperces körökben fut.</p>
+                <br>
+                <p class="game-note">** Ha több pontot érsz el, mint a jelenlegi rekord, szintúgy egy meglepi vár rád a bulin (De ez csak egy screenshotttal bizonyíthatod)</p>
+                <br>
+                <p>Bogus pls ne csalj!</p>
+                <div class="mobile-only-message" aria-hidden="true" style="display:none;">
+                    <p>A játék csak asztali nézeten játszható. Kérlek nyisd meg az oldalt asztali böngészőben vagy növeld a böngészőablakot.</p>
+                </div>
+            </section>
+
         </main>
 
         <!-- ==================== FOOTER ==================== -->
@@ -205,5 +253,6 @@
 
     <div class="confetti-container" id="confetti-container"></div>
     <script src="script.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>

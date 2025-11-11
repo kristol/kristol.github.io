@@ -14,6 +14,174 @@ body {
     overflow-x: hidden;
 }
 
+/* Top days container styling */
+.subtitle-extra#top-days-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+#top-days-left {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+#top-days-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Background intensity levels (increase as days approach 0) */
+.bg-intensity-0 {
+    /* default gradient (existing) */
+    animation-duration: 18s;
+}
+.bg-intensity-1 {
+    /* warmer and slightly faster */
+    background: linear-gradient(135deg, #ff8a6b 0%, #4ecdc4 25%, #45b7d1 50%, #ffd24d 75%, #f0932b 100%);
+    background-size: 420% 420%;
+    animation-duration: 12s;
+    filter: saturate(1.05) contrast(1.03);
+}
+.bg-intensity-2 {
+    /* more saturated, faster shift + subtle flicker */
+    background: linear-gradient(135deg, #ff7a6b 0%, #3fd3b8 25%, #34a7c9 50%, #ffd24d 75%, #ff6b2b 100%);
+    background-size: 480% 480%;
+    animation-duration: 8s;
+    filter: saturate(1.15) contrast(1.07);
+}
+.bg-intensity-3 {
+    /* maximal intensity: bright, quick animation, pulsing overlay */
+    background: linear-gradient(135deg, #ff5b6b 0%, #2fd3a8 20%, #2a9ac9 45%, #ffd24d 75%, #ff4b2b 100%);
+    background-size: 600% 600%;
+    animation-duration: 5s;
+    filter: saturate(1.25) contrast(1.12) brightness(1.03);
+}
+
+/* pulsing overlay for highest intensity */
+.bg-intensity-3::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.04), transparent 40%);
+    animation: flicker 3s infinite ease-in-out;
+    mix-blend-mode: overlay;
+}
+
+@keyframes flicker {
+    0%,100% { opacity: 0.04; }
+    50% { opacity: 0.14; }
+}
+
+/* Meme Tap Rush game styles */
+.game-section {
+    margin-top: 2rem;
+}
+.game-panel {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+#meme-game-canvas {
+    background: rgba(0,0,0,0.15);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    max-width: 100%;
+    height: auto;
+    /* prevent the browser from intercepting touch gestures over the game */
+    touch-action: none;
+}
+
+/* Ensure canvas appears above nearby UI elements but below global confetti */
+#meme-game-canvas {
+    position: relative;
+    z-index: 50;
+}
+
+/* disable tap highlight on mobile browsers */
+#meme-game-canvas, #meme-game-canvas * {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+/* Prevent text selection and callout on mobile for smoother repeated tapping */
+#meme-game-canvas {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+.game-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+}
+.game-info {
+    font-size: 1rem;
+    text-align: center;
+    line-height: 1.4;
+}
+.game-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.game-btn {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.game-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.game-note { font-size: 0.9rem; opacity: 0.95; margin-top: 0.6rem; }
+
+/* Desktop-only game: hide on small viewports */
+@media (max-width: 900px) {
+    .game-panel { display: none; }
+    .mobile-only-message { display: block; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 10px; margin-top: 0.6rem; }
+}
+
+@media (min-width: 901px) {
+    .mobile-only-message { display: none; }
+}
+
+/* Explanation table styling next to the game */
+.game-explain {
+    max-width: 260px;
+}
+.game-explain h4 {
+    margin-bottom: 8px;
+    font-size: 1rem;
+}
+.explain-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(0,0,0,0.12);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.explain-table th, .explain-table td {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+    text-align: left;
+}
+.explain-table thead th {
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.explain-table tbody tr:nth-child(odd) {
+    background: rgba(255,255,255,0.02);
+}
+
 /* ==================== MYSTERY HUNT SIDEBAR ==================== */
 .mystery-hunt-sidebar {
     position: fixed;
