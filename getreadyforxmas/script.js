@@ -7,14 +7,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameOverlay = document.getElementById('game-overlay');
     const closeGameBtn = document.getElementById('close-game');
     const gameTitle = document.getElementById('game-title');
+    const gameIconEl = document.getElementById('game-icon');
+    // Icons: list files under images/ folder (customize names to your assets)
+    const GAME_ICONS = [
+        'images/icon-snowflake.png',
+        'images/icon-tree.png',
+        'images/icon-gift.png',
+        'images/icon-bell.png',
+        'images/icon-santa.png',
+        'images/icon-star.png'
+    ];
+    function setRandomIcon() {
+        if (!gameIconEl) return;
+        const src = GAME_ICONS[Math.floor(Math.random() * GAME_ICONS.length)] || '';
+        if (!src) { gameIconEl.style.display = 'none'; return; }
+        gameIconEl.src = src;
+        gameIconEl.style.display = 'inline-block';
+        // Fallback hide on error if file missing
+        gameIconEl.onerror = () => { gameIconEl.style.display = 'none'; };
+    }
     const gameContent = document.getElementById('game-content');
 
     // Configuration
-    const TOTAL_DAYS = 24;
+    const TOTAL_DAYS = 24; // regular days; we will add a stealth Day 25 gift tile separately
     // URL param overrides: ?debug=1&date=2025-12-05
     const params = new URLSearchParams(location.search);
     const DEBUG_MODE = params.get('debug') === '1' || params.get('debug') === 'true';
     const FAKE_TODAY = params.get('date') || null;
+    // Gift testing URL param: ?gift=1 unlocks gift tile; ?gift=open also opens it
+    const GIFT_PARAM = params.get('gift');
 
     // Christmas Quotes / Jokes
     const lockedQuotes = [
@@ -41,6 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
         3: tictactoeGame,
         4: minesweeperGame,
         5: g2048Game,
+        6: tangoGame,
+        7: lightsOutGame,
         // more days can be added here
     };
 
@@ -56,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 1; i <= TOTAL_DAYS; i++) {
             const dayCard = document.createElement('div');
             dayCard.classList.add('day-card');
-            
+
             const dayNum = document.createElement('span');
             dayNum.classList.add('day-number');
             dayNum.innerText = i;
@@ -64,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Determine State
             let isLocked = true;
-            
+
             if (DEBUG_MODE) {
                 isLocked = false;
             } else {
@@ -92,11 +115,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (progress[i]) {
                     dayCard.classList.add('completed');
                 }
-                
+
                 dayCard.addEventListener('click', () => openGame(i));
             }
 
             grid.appendChild(dayCard);
+        }
+
+        // Add stealth Day 25 gift tile at the end
+        const completedCount = Object.keys(progress).filter(k => progress[k]).length;
+        const giftCard = document.createElement('div');
+        giftCard.classList.add('day-card');
+        giftCard.style.position = 'relative';
+        const giftNum = document.createElement('span');
+        giftNum.classList.add('day-number');
+        giftNum.innerText = '25';
+        giftCard.appendChild(giftNum);
+        // Progress label
+        const prog = document.createElement('div');
+        prog.style.position = 'absolute';
+        prog.style.bottom = '8px';
+        prog.style.left = '8px';
+        prog.style.right = '8px';
+        prog.style.fontWeight = '800';
+        prog.style.textAlign = 'center';
+        prog.textContent = `${completedCount}/${TOTAL_DAYS}`;
+        giftCard.appendChild(prog);
+
+        // Stealth behavior: Locked and visually subtle until all others complete
+        const allComplete = completedCount >= TOTAL_DAYS || (GIFT_PARAM === '1' || GIFT_PARAM === 'true' || GIFT_PARAM === 'open');
+        if (!allComplete) {
+            // hide number and make card muted, no click
+            giftCard.classList.add('locked');
+            // subtle hint: no number, show only progress text
+            giftNum.style.opacity = '0.2';
+            giftCard.title = 'A surprise awaits once all challenges are complete';
+            giftCard.addEventListener('click', () => showModal('Finish all 24 to reveal your gift!'));
+        } else {
+            giftCard.classList.remove('locked');
+            giftCard.classList.add('completed'); // visually celebratory
+            giftCard.title = 'Your special gift';
+            giftCard.addEventListener('click', () => openGiftTile());
+        }
+        grid.appendChild(giftCard);
+        // Auto-open gift overlay when requested
+        if (allComplete && (GIFT_PARAM === 'open')) {
+            // slight delay to ensure DOM ready
+            setTimeout(openGiftTile, 50);
         }
     }
 
@@ -124,7 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function openGame(day) {
         gameOverlay.classList.remove('hidden');
         gameTitle.innerText = `Day ${day} Challenge`;
-        
+        setRandomIcon();
+
         // Clear previous game
         gameContent.innerHTML = '';
 
@@ -160,11 +226,38 @@ document.addEventListener('DOMContentLoaded', () => {
         gameContent.appendChild(container);
     }
 
+    // Gift Tile overlay
+    function openGiftTile() {
+        gameOverlay.classList.remove('hidden');
+        gameTitle.innerText = 'Surprise Gift';
+        setRandomIcon();
+        gameContent.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.style.textAlign = 'center';
+        const h = document.createElement('h3');
+        h.innerText = 'Merry Christmas Amo! 🎁';
+        const p = document.createElement('p');
+        p.innerText = 'You conquered all 24 challenges. Here is one of your gifts!';
+        const btn = document.createElement('a');
+        btn.className = 'comic-btn';
+        btn.style.display = 'inline-block';
+        btn.style.marginTop = '16px';
+        btn.textContent = 'Open Gift';
+        // Open the final gift URL directly when clicked
+        btn.href = 'https://www.budapestpark.hu/events/mac-demarco-20260623';
+        btn.target = '_blank';
+        btn.rel = 'noopener noreferrer';
+        wrap.appendChild(h);
+        wrap.appendChild(p);
+        wrap.appendChild(btn);
+        gameContent.appendChild(wrap);
+    }
+
     function markDayComplete(day) {
         const progress = JSON.parse(localStorage.getItem('snoopy_xmas_progress')) || {};
         progress[day] = true;
         localStorage.setItem('snoopy_xmas_progress', JSON.stringify(progress));
-        
+
         alert("Good job! Snoopy is proud.");
         gameOverlay.classList.add('hidden');
         initGrid(); // Refresh grid to show checkmark
@@ -194,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             snowflake.style.animationDuration = Math.random() * 3 + 2 + 's'; // 2-5s
             snowflake.style.opacity = Math.random();
             snowflake.style.width = snowflake.style.height = Math.random() * 10 + 5 + 'px';
-            
+
             snowContainer.appendChild(snowflake);
         }
     }
@@ -225,11 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const startBtn = wrapper.querySelector('#simon-start');
         const info = wrapper.querySelector('.simon-info');
 
-    const targetRounds = 10;
-    let roundsCompleted = 0;
-    let seq = [];
-    let userIndex = 0;
-    let accepting = false;
+        const targetRounds = 10;
+        let roundsCompleted = 0;
+        let seq = [];
+        let userIndex = 0;
+        let accepting = false;
 
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         let audioReady = false;
@@ -442,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (inTarget()) {
                     streak++;
                     info.textContent = `Streak: ${streak} / 3`;
-                    showModal(['Bullseye!', 'Snowflake-precise!', 'Perfect!'][Math.floor(Math.random()*3)]);
+                    showModal(['Bullseye!', 'Snowflake-precise!', 'Perfect!'][Math.floor(Math.random() * 3)]);
                     if (streak >= 3) {
                         running = false;
                         window.removeEventListener('keydown', keyHandler);
@@ -515,14 +608,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function lines() {
             return [
-                [0,1,2],[3,4,5],[6,7,8],
-                [0,3,6],[1,4,7],[2,5,8],
-                [0,4,8],[2,4,6]
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
             ];
         }
 
         function winner(b) {
-            for (const [a,c,d] of lines()) {
+            for (const [a, c, d] of lines()) {
                 if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
             }
             return null;
@@ -640,14 +733,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function hangmanGame(root, onWin) {
         root.innerHTML = '';
         // Configure the secret phrase here (uppercase recommended). You can change this string.
-        const HANGMAN_SECRET = (new URLSearchParams(location.search).get('secret') || 'MERRY CHRISTMAS').toUpperCase();
+        const HANGMAN_SECRET = (new URLSearchParams(location.search).get('secret') || 'FARTY MEISTER').toUpperCase();
         const secret = HANGMAN_SECRET;
         const lockKey = 'xmas_hangman_day2_lock_until';
         const allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         let guessed = new Set();
         let wrong = new Set();
         const maxLives = 6; // head, body, armL, armR, legL, legR
-    let gameOver = false;
+        let gameOver = false;
 
         const wrap = document.createElement('div');
         wrap.className = 'hangman-wrapper';
@@ -686,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const missesEl = wrap.querySelector('#hm-misses');
         const livesEl = wrap.querySelector('#hm-lives');
         const keysEl = wrap.querySelector('#hm-keys');
-    const cooldownEl = wrap.querySelector('#hm-cooldown');
+        const cooldownEl = wrap.querySelector('#hm-cooldown');
 
         function maskWord() {
             let out = '';
@@ -803,7 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = Math.max(0, Math.ceil(ms / 1000));
             const m = Math.floor(s / 60);
             const sec = s % 60;
-            return `${String(m).padStart(1,'0')}:${String(sec).padStart(2,'0')}`;
+            return `${String(m).padStart(1, '0')}:${String(sec).padStart(2, '0')}`;
         }
 
         function startCooldown(initialMs) {
@@ -852,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const SIZE = 4;
         let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
         let score = 0;
-       let gameOver = false;
+        let gameOver = false;
 
         const wrap = document.createElement('div');
         wrap.className = 'g2048-wrapper';
@@ -881,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function showHelp2048() {
             showModal(
-`Goal: Merge tiles to reach 2048.
+                `Goal: Merge tiles to reach 2048.
 
 Controls:
 - Keyboard: Arrow keys (or WASD)
@@ -899,7 +992,7 @@ Rules:
 
         function emptyCells() {
             const cells = [];
-            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] === 0) cells.push([r,c]);
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] === 0) cells.push([r, c]);
             return cells;
         }
 
@@ -930,7 +1023,7 @@ Rules:
             let i = 0;
             let gained = 0;
             while (i < nonZero.length) {
-                if (i + 1 < nonZero.length && nonZero[i] === nonZero[i+1]) {
+                if (i + 1 < nonZero.length && nonZero[i] === nonZero[i + 1]) {
                     const merged = nonZero[i] * 2;
                     result.push(merged);
                     gained += merged;
@@ -983,7 +1076,7 @@ Rules:
             for (let r = 0; r < SIZE; r++) {
                 for (let c = 0; c < SIZE; c++) {
                     const v = board[r][c];
-                    if ((r+1 < SIZE && board[r+1][c] === v) || (c+1 < SIZE && board[r][c+1] === v)) return true;
+                    if ((r + 1 < SIZE && board[r + 1][c] === v) || (c + 1 < SIZE && board[r][c + 1] === v)) return true;
                 }
             }
             return false;
@@ -1006,9 +1099,9 @@ Rules:
         // Input: keyboard
         function keyHandler(e) {
             const k = e.key.toLowerCase();
-            if ([ 'arrowup','arrowdown','arrowleft','arrowright','w','a','s','d' ].includes(k) || ['up','down','left','right'].includes(k)) {
+            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k) || ['up', 'down', 'left', 'right'].includes(k)) {
                 e.preventDefault();
-                const map = { arrowup:'up', w:'up', arrowdown:'down', s:'down', arrowleft:'left', a:'left', arrowright:'right', d:'right' };
+                const map = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' };
                 move(map[k] || k);
             }
         }
@@ -1057,9 +1150,9 @@ Rules:
         // init
         start();
         window.addEventListener('keydown', keyHandler);
-    boardEl.addEventListener('touchstart', onTouchStart, { passive: true });
-    boardEl.addEventListener('touchmove', onTouchMove, { passive: false });
-    boardEl.addEventListener('touchend', onTouchEnd);
+        boardEl.addEventListener('touchstart', onTouchStart, { passive: true });
+        boardEl.addEventListener('touchmove', onTouchMove, { passive: false });
+        boardEl.addEventListener('touchend', onTouchEnd);
 
         // cleanup on overlay close
         const observer = new MutationObserver(() => {
@@ -1069,6 +1162,379 @@ Rules:
             }
         });
         observer.observe(document.getElementById('game-overlay'), { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // 6) LinkedIn Tango (Day 6)
+    function tangoGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 6; // 6x6 grid
+        // Symbols
+        const SUN = '☀️';
+        const MOON = '🌑';
+        // Board states: '', SUN, MOON. Prefilled cells locked.
+        let board = Array.from({ length: N }, () => Array(N).fill(''));
+        let locked = Array.from({ length: N }, () => Array(N).fill(false));
+        // Constraints between cells: {type: 'eq'|'neq', a:[r,c], b:[r,c]}
+        const constraints = [];
+        // Provide a known valid solution to ensure solvability
+        const SOL = [
+            [SUN, SUN, MOON, MOON, SUN, MOON],
+            [MOON, MOON, SUN, SUN, MOON, SUN],
+            [SUN, MOON, SUN, MOON, MOON, SUN],
+            [MOON, SUN, MOON, SUN, SUN, MOON],
+            [SUN, MOON, MOON, SUN, MOON, SUN],
+            [MOON, SUN, SUN, MOON, SUN, MOON],
+        ];
+
+        const wrap = document.createElement('div');
+        wrap.className = 'tango-wrapper';
+        wrap.innerHTML = `
+            <h3>Tango</h3>
+            <div class="tango-container">
+              <aside class="tango-sidebar">
+                <div class="tango-stats">Each row/column: ${N / 2} suns and ${N / 2} moons</div>
+                <div class="tango-controls">
+                    <button class="comic-btn-small" id="tango-help">How to play</button>
+                    <button class="comic-btn-small" id="tango-check">Check</button>
+                    <button class="comic-btn-small" id="tango-hint">Hint</button>
+                    <button class="comic-btn-small" id="tango-clear">Clear row/col</button>
+                    <button class="comic-btn-small" id="tango-restart">Restart puzzle</button>
+                </div>
+              </aside>
+              <div class="tango-board" id="tango-board"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#tango-board');
+        const helpBtn = wrap.querySelector('#tango-help');
+        const checkBtn = wrap.querySelector('#tango-check');
+        const hintBtn = wrap.querySelector('#tango-hint');
+        const clearBtn = wrap.querySelector('#tango-clear');
+        const restartBtn = wrap.querySelector('#tango-restart');
+
+        function showHelp() {
+            showModal(
+                `Fill the grid with suns ${SUN} and moons ${MOON}.
+
+Rules:
+- Equal numbers per row and column (${N / 2} each).
+- No more than two of the same symbol adjacent horizontally or vertically.
+- Cells linked with = must match; with x must differ.
+
+Tip: Use logic — no guessing needed.`
+            );
+        }
+
+        // Create a fixed starter puzzle (hand-crafted to be solvable without guessing)
+        function seedPuzzle() {
+            // Prefill some cells from the known solution
+            // Slightly harder: fewer prefilled cells, but still consistent with SOL
+            const clues = [
+                [0, 1], [0, 5],
+                [1, 0],
+                [2, 2],
+                [3, 4],
+                [4, 0], [4, 5],
+                [5, 3]
+            ];
+            for (const [r, c] of clues) {
+                board[r][c] = SOL[r][c];
+                locked[r][c] = true;
+            }
+            // Add constraints consistent with the solution
+            const pairs = [
+                // equals (matching SOL), placed to encourage deduction chains
+                { a: [0, 2], b: [0, 3], type: 'eq' },
+                { a: [2, 4], b: [2, 5], type: 'eq' },
+                // different (matching SOL)
+                { a: [2, 0], b: [3, 0], type: 'neq' },
+                { a: [1, 1], b: [1, 2], type: 'neq' },
+                { a: [3, 2], b: [3, 3], type: 'neq' },
+                { a: [5, 4], b: [5, 5], type: 'neq' },
+            ];
+            for (const p of pairs) constraints.push(p);
+        }
+
+        function render() {
+            boardEl.innerHTML = '';
+            // cells
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'tango-cell';
+                    if (locked[r][c]) cell.classList.add('prefilled');
+                    cell.dataset.r = String(r);
+                    cell.dataset.c = String(c);
+                    cell.textContent = board[r][c] || '';
+                    if (!locked[r][c]) {
+                        cell.addEventListener('click', () => toggle(r, c));
+                    }
+                    boardEl.appendChild(cell);
+                }
+            }
+            // Draw connectors between adjacent cells: a circle badge at the midpoint
+            const bRect = boardEl.getBoundingClientRect();
+            constraints.forEach(con => {
+                const [ar, ac] = con.a; const [br, bc] = con.b;
+                const idxA = ar * N + ac; const idxB = br * N + bc;
+                const cellA = boardEl.children[idxA];
+                const cellB = boardEl.children[idxB];
+                if (!cellA || !cellB) return;
+                const rA = cellA.getBoundingClientRect();
+                const rB = cellB.getBoundingClientRect();
+                const midX = (rA.left + rA.right) / 2 - bRect.left;
+                const midY = (rA.top + rA.bottom) / 2 - bRect.top;
+                const midX2 = (rB.left + rB.right) / 2 - bRect.left;
+                const midY2 = (rB.top + rB.bottom) / 2 - bRect.top;
+                const cx = (midX + midX2) / 2;
+                const cy = (midY + midY2) / 2;
+                const connector = document.createElement('div');
+                connector.className = 'tango-connector ' + (con.type === 'eq' ? 'eq' : 'x');
+                connector.textContent = con.type === 'eq' ? '=' : 'x';
+                connector.style.left = (cx - 9) + 'px';
+                connector.style.top = (cy - 9) + 'px';
+                boardEl.appendChild(connector);
+            });
+        }
+
+        function toggle(r, c) {
+            const v = board[r][c];
+            board[r][c] = v === '' ? SUN : (v === SUN ? MOON : '');
+            validate();
+            render();
+        }
+
+        function rowCounts(r) {
+            let s = 0, m = 0; for (let c = 0; c < N; c++) { if (board[r][c] === SUN) s++; else if (board[r][c] === MOON) m++; }
+            return { s, m };
+        }
+        function colCounts(c) {
+            let s = 0, m = 0; for (let r = 0; r < N; r++) { if (board[r][c] === SUN) s++; else if (board[r][c] === MOON) m++; }
+            return { s, m };
+        }
+
+        function validate() {
+            // clear invalid flags
+            Array.from(boardEl.children).forEach(el => el.classList && el.classList.remove('invalid'));
+            let ok = true;
+            // 1) No more than two adjacent same symbols
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const v = board[r][c]; if (!v) continue;
+                    // check horizontal runs
+                    const h = [c - 2, c - 1, c, c + 1, c + 2];
+                    for (let i = 0; i + 2 < h.length; i++) {
+                        const a = h[i], b = h[i + 1], d = h[i + 2];
+                        if (a >= 0 && d < N && board[r][a] === v && board[r][b] === v && board[r][d] === v) {
+                            markInvalid(r, a); markInvalid(r, b); markInvalid(r, d); ok = false;
+                        }
+                    }
+                    // check vertical runs
+                    const vIdx = [r - 2, r - 1, r, r + 1, r + 2];
+                    for (let i = 0; i + 2 < vIdx.length; i++) {
+                        const a = vIdx[i], b = vIdx[i + 1], d = vIdx[i + 2];
+                        if (a >= 0 && d < N && board[a][c] === v && board[b][c] === v && board[d][c] === v) {
+                            markInvalid(a, c); markInvalid(b, c); markInvalid(d, c); ok = false;
+                        }
+                    }
+                }
+            }
+            // 2) Equal numbers per row/col (final check only)
+            // For validation while solving, ensure counts do not exceed N/2
+            for (let r = 0; r < N; r++) { const { s, m } = rowCounts(r); if (s > N / 2 || m > N / 2) { markRowInvalid(r); ok = false; } }
+            for (let c = 0; c < N; c++) { const { s, m } = colCounts(c); if (s > N / 2 || m > N / 2) { markColInvalid(c); ok = false; } }
+            // 3) constraints
+            for (const con of constraints) {
+                const [ar, ac] = con.a; const [br, bc] = con.b;
+                const va = board[ar][ac]; const vb = board[br][bc];
+                if (va && vb) {
+                    if (con.type === 'eq' && va !== vb) { markInvalid(ar, ac); markInvalid(br, bc); ok = false; }
+                    if (con.type === 'neq' && va === vb) { markInvalid(ar, ac); markInvalid(br, bc); ok = false; }
+                }
+            }
+            return ok;
+        }
+
+        function markInvalid(r, c) { const el = getCellEl(r, c); if (el) el.classList.add('invalid'); }
+        function markRowInvalid(r) { for (let c = 0; c < N; c++) markInvalid(r, c); }
+        function markColInvalid(c) { for (let r = 0; r < N; r++) markInvalid(r, c); }
+        function getCellEl(r, c) { const idx = r * N + c; return boardEl.children[idx]; }
+
+        function isComplete() {
+            for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!board[r][c]) return false;
+            return true;
+        }
+
+        function checkWin() {
+            const valid = validate();
+            if (!valid) { showModal('Some rules are broken. Keep refining.'); return; }
+            // final equal counts
+            for (let r = 0; r < N; r++) { const { s, m } = rowCounts(r); if (s !== N / 2 || m !== N / 2) { showModal('Rows must have equal suns and moons.'); return; } }
+            for (let c = 0; c < N; c++) { const { s, m } = colCounts(c); if (s !== N / 2 || m !== N / 2) { showModal('Columns must have equal suns and moons.'); return; } }
+            // constraints satisfied already by validate
+            // Optional: accept any valid solution; we also know at least one exists (SOL)
+            showModal('Perfect logic! Puzzle solved.');
+            setTimeout(onWin, 400);
+        }
+
+        function giveHint() {
+            // Simple hint: find a place where placing one symbol would violate the 3-in-a-row, so the opposite must be true
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) if (!board[r][c] && !locked[r][c]) {
+                    // try SUN
+                    const prev = board[r][c];
+                    board[r][c] = SUN;
+                    const sunBad = !validate();
+                    board[r][c] = MOON;
+                    const moonBad = !validate();
+                    board[r][c] = prev;
+                    if (sunBad && !moonBad) { board[r][c] = MOON; render(); return showModal('Hint: This cell must be a moon.'); }
+                    if (!sunBad && moonBad) { board[r][c] = SUN; render(); return showModal('Hint: This cell must be a sun.'); }
+                }
+            }
+            showModal('No direct deduction found. Try checking constraints or equal counts.');
+        }
+
+        function clearRowCol() {
+            // Ask user which to clear via prompt (minimal UI)
+            const what = prompt('Type rN to clear row N or cN to clear column N (1..6). Example: r3 or c5');
+            if (!what) return;
+            const m = what.trim().toLowerCase().match(/^([rc])(\d)$/);
+            if (!m) { showModal('Invalid input. Use rN or cN.'); return; }
+            const idx = Number(m[2]) - 1;
+            if (m[1] === 'r') {
+                for (let c = 0; c < N; c++) if (!locked[idx][c]) board[idx][c] = '';
+            } else {
+                for (let r = 0; r < N; r++) if (!locked[r][idx]) board[r][idx] = '';
+            }
+            render();
+        }
+
+        function restart() {
+            board = Array.from({ length: N }, () => Array(N).fill(''));
+            locked = Array.from({ length: N }, () => Array(N).fill(false));
+            constraints.length = 0;
+            seedPuzzle();
+            render();
+            validate();
+        }
+
+        // init
+        seedPuzzle();
+        render();
+        validate();
+
+        helpBtn.addEventListener('click', showHelp);
+        checkBtn.addEventListener('click', () => { if (!isComplete()) showModal('Fill all cells first.'); else checkWin(); });
+        hintBtn.addEventListener('click', giveHint);
+        clearBtn.addEventListener('click', clearRowCol);
+        restartBtn.addEventListener('click', restart);
+    }
+
+    // 7) Lights Out (Day 7)
+    function lightsOutGame(root, onWin) {
+        root.innerHTML = '';
+        const SIZE = 5;
+        let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(false)); // false=off, true=on
+
+        const wrap = document.createElement('div');
+        wrap.className = 'lo-wrapper';
+                wrap.innerHTML = `
+            <h3>Lights Out</h3>
+            <div class="lo-container">
+              <aside class="lo-sidebar">
+                <div class="lo-info">Tap a cell to toggle it and its neighbors. Turn all lights OFF.</div>
+                <div class="lo-controls">
+                    <button class="comic-btn-small" id="lo-help">How to play</button>
+                                        <button class="comic-btn-small" id="lo-load">Restart puzzle</button>
+                </div>
+              </aside>
+              <div class="lo-board" id="lo-board"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#lo-board');
+        const helpBtn = wrap.querySelector('#lo-help');
+    const loadBtn = wrap.querySelector('#lo-load');
+
+        function showHelp() {
+            showModal(
+`Goal: Turn all lights OFF.
+
+Rules:
+- Tap a cell to toggle it and its up/down/left/right neighbors.
+- Keep going until the entire board is dark.
+`);
+        }
+        helpBtn.addEventListener('click', showHelp);
+
+        function render() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'lo-cell' + (board[r][c] ? ' on' : '');
+                    cell.dataset.r = String(r);
+                    cell.dataset.c = String(c);
+                    cell.addEventListener('click', () => onCell(r, c));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function toggle(r, c) {
+            if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return;
+            board[r][c] = !board[r][c];
+        }
+
+        function onCell(r, c) {
+            toggle(r, c);
+            toggle(r - 1, c);
+            toggle(r + 1, c);
+            toggle(r, c - 1);
+            toggle(r, c + 1);
+            render();
+            checkWin();
+        }
+
+        // Apply a move without re-render/check (useful for seeding)
+        function applyMove(r, c) {
+            toggle(r, c);
+            toggle(r - 1, c);
+            toggle(r + 1, c);
+            toggle(r, c - 1);
+            toggle(r, c + 1);
+        }
+
+        function allOff() { for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c]) return false; return true; }
+
+        function checkWin() {
+            if (allOff()) {
+                showModal('Lights out! Well done.');
+                setTimeout(onWin, 400);
+            }
+        }
+
+        function restart() {
+            board = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
+            render();
+        }
+
+        function loadFixedPuzzle() {
+            // Start from all-off, then apply a fixed list of moves to create a known-solvable board
+            restart();
+            // Coordinates are 0-indexed: [row, col]
+            const moves = [ [0,0], [0,2], [1,3], [2,1], [3,4], [4,2] ];
+            moves.forEach(([r,c]) => applyMove(r, c));
+            render();
+        }
+
+    loadBtn.addEventListener('click', loadFixedPuzzle);
+
+        // init with a fixed puzzle instead of random
+        loadFixedPuzzle();
     }
 
     // 4) Minesweeper (Day 4)
@@ -1115,7 +1581,7 @@ Rules:
 
         function showHelp() {
             showModal(
-`Goal: Reveal all safe tiles without hitting a mine.
+                `Goal: Reveal all safe tiles without hitting a mine.
 
 Controls:
 - Click: reveal a tile

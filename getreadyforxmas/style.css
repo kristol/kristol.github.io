@@ -233,6 +233,8 @@ h1 {
     align-items: center;
     background: #f1c40f; /* Woodstock yellow */
 }
+.game-title-wrap { display: flex; align-items: center; gap: 10px; }
+.game-icon { width: 28px; height: 28px; border: 2px solid var(--comic-black); border-radius: 6px; background: #fff; object-fit: cover; }
 
 .game-content {
     flex: 1;
@@ -565,3 +567,90 @@ h1 {
 .btn-2048-restart:hover { filter: brightness(0.95); }
 .btn-2048-help { background: #f1c40f; color: #1a1a1a; }
 .btn-2048-help:hover { filter: brightness(0.95); }
+
+/* Tango (Day 6) */
+.tango-wrapper { width: 100%; text-align: center; }
+.tango-container { display: flex; gap: 16px; justify-content: center; align-items: flex-start; width: 100%; }
+.tango-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f9f9f9;
+    padding: 10px 12px;
+    border: 3px solid var(--comic-black);
+    border-radius: 10px;
+    min-width: 220px;
+    max-width: 260px;
+}
+.tango-sidebar .comic-btn-small { width: 100%; font-weight: 800; border: 2px solid var(--comic-black); }
+.tango-board {
+    display: grid;
+    grid-template-columns: repeat(6, 48px);
+    grid-template-rows: repeat(6, 48px);
+    gap: 6px;
+    background: #ecf0f1;
+    padding: 8px;
+    border: 3px solid var(--comic-black);
+    border-radius: 10px;
+    position: relative; /* allow absolute-positioned connectors inside board */
+}
+.tango-cell {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 2px solid var(--comic-black);
+    border-radius: 6px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    user-select: none;
+}
+.tango-cell.prefilled { background: #f5f6fa; cursor: default; }
+.tango-cell.invalid { box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.45) inset; }
+.tango-constraint { font-size: 0.9rem; font-weight: 800; }
+.tango-eq { color: #16a085; }
+.tango-x { color: #e74c3c; }
+.tango-badge { position: absolute; right: 4px; top: 2px; }
+.tango-cell { position: relative; }
+/* connector placed between cells */
+.tango-connector {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    border: 2px solid var(--comic-black);
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 2px 2px 0 var(--comic-black);
+    pointer-events: none; /* non-interactive */
+}
+.tango-connector.eq { color: #16a085; }
+.tango-connector.x { color: #e74c3c; }
+.tango-controls { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.tango-stats { font-weight: bold; }
+
+/* Lights Out (Day 7) */
+.lo-wrapper { width: 100%; text-align: center; }
+.lo-container { display: flex; gap: 16px; justify-content: center; align-items: flex-start; width: 100%; }
+.lo-sidebar {
+    position: sticky; top: 0; z-index: 5; background: #f9f9f9;
+    padding: 10px 12px; border: 3px solid var(--comic-black); border-radius: 10px;
+    min-width: 220px; max-width: 260px;
+}
+.lo-sidebar .comic-btn-small { width: 100%; font-weight: 800; border: 2px solid var(--comic-black); }
+.lo-board {
+    display: grid; grid-template-columns: repeat(5, 60px); grid-template-rows: repeat(5, 60px);
+    gap: 8px; background: #ecf0f1; padding: 10px; border: 3px solid var(--comic-black); border-radius: 10px;
+}
+@media (max-width: 480px) { .lo-board { grid-template-columns: repeat(5, 54px); grid-template-rows: repeat(5, 54px); gap: 6px; } }
+.lo-cell {
+    width: 60px; height: 60px; border: 3px solid var(--comic-black); border-radius: 8px;
+    background: #2c3e50; cursor: pointer; box-shadow: 4px 4px 0 var(--comic-black);
+}
+.lo-cell.on { background: #f1c40f; }
+.lo-info { font-weight: bold; margin-top: 8px; }
