@@ -1,3 +1,87 @@
+/* Snow Queens (Day 12) */
+.sq-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sq-container {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+.sq-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sq-info {
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+.sq-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.sq-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.sq-board {
+    display: grid;
+    grid-template-columns: repeat(9, 36px);
+    grid-template-rows: repeat(9, 36px);
+    gap: 4px;
+    padding: 6px;
+    border: 2px solid #c3d7e8;
+    border-radius: 8px;
+    background: #f7fbff;
+}
+.sq-cell {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: #163;
+    user-select: none;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 2px solid rgba(0,0,0,0.12);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.sq-cell:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.sq-cell.invalid { outline: 2px solid #c62828; box-shadow: inset 0 0 0 2px #c62828; }
+
+/* Region colors: fully distinct hues (no similar shades) */
+.region-0 { background: #ff6b6b; /* Coral Red */ color: #fff; }
+.region-1 { background: #4dabf7; /* Sky Blue */ color: #083049; }
+.region-2 { background: #51cf66; /* Fresh Green */ color: #063a1a; }
+.region-3 { background: #845ef7; /* Violet */ color: #fff; }
+.region-4 { background: #ffd43b; /* Golden */ color: #4a3800; }
+.region-5 { background: #38d9a9; /* Teal */ color: #043a2c; }
+.region-6 { background: #ffa94d; /* Orange */ color: #5a3300; }
+.region-7 { background: #a68a64; /* Warm Brown */ color: #271a0d; }
+.region-8 { background: #e599f7; /* Soft Pink/Violet */ color: #3f0e51; }
+
+/* Region-specific border accents for clarity */
+.sq-cell.region-0 { border-color: #d94e4e; }
+.sq-cell.region-1 { border-color: #2e8fd6; }
+.sq-cell.region-2 { border-color: #34a64a; }
+.sq-cell.region-3 { border-color: #5d31d9; }
+.sq-cell.region-4 { border-color: #c9a52b; }
+.sq-cell.region-5 { border-color: #249d78; }
+.sq-cell.region-6 { border-color: #d17b1f; }
+.sq-cell.region-7 { border-color: #765e42; }
+.sq-cell.region-8 { border-color: #b55ed1; }
+
+@media (max-width: 560px) {
+    .sq-container { grid-template-columns: 1fr; }
+    .sq-board { justify-content: center; }
+}
 :root {
     --comic-black: #1a1a1a;
     --comic-white: #ffffff;
@@ -689,6 +773,34 @@ h1 {
     .mm-grid { gap:6px; }
     .mm-card { width:70px; height:90px; }
     .mm-front, .mm-back { font-size:30px; }
+}
+
+/* Flood Fill (Day 10) */
+.ff-wrapper { max-width: 860px; margin: 0 auto; }
+.ff-container { display: flex; gap: 16px; align-items: flex-start; }
+.ff-sidebar { width: 220px; background:#f9f9f9; border:3px solid var(--comic-black); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; }
+.ff-info { font-size: 13px; line-height: 1.3; }
+.ff-stats { font-weight: 800; }
+.ff-controls { display:flex; flex-direction:column; gap:6px; }
+.ff-palette { display:flex; flex-wrap: wrap; gap:8px; }
+.ff-color-btn { width:32px; height:32px; border-radius:50%; border:3px solid #222; box-shadow:2px 2px 0 #000; cursor:pointer; }
+.ff-color-btn:active { transform: scale(0.96); }
+.ff-board { display:grid; gap:2px; border:3px solid #222; border-radius:10px; padding:6px; background:#eee; box-shadow:4px 4px 0 #000; }
+.ff-cell { width:28px; height:28px; border-radius:6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); }
+@media (max-width: 640px){
+    .ff-board { gap:2px; }
+    .ff-cell { width:24px; height:24px; }
+}
+/* Flappy Bird Xmas (Day 11) */
+.fb-wrapper { max-width: 620px; margin: 0 auto; }
+.fb-container { display:flex; gap:14px; justify-content:center; align-items:flex-start; }
+.fb-sidebar { background:#f9f9f9; border:3px solid var(--comic-black); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; min-width:140px; }
+.fb-score { font-weight:800; font-size:14px; }
+#fb-canvas { border:4px solid var(--comic-black); border-radius:14px; background:#dff3ff; box-shadow:4px 4px 0 #000; touch-action:none; }
+.fb-hint { font-size:12px; opacity:0.75; }
+@media (max-width: 520px){
+    .fb-container { flex-direction:column; align-items:center; }
+    #fb-canvas { width:300px !important; height:420px !important; }
 }
 .lo-sidebar .comic-btn-small { width: 100%; font-weight: 800; border: 2px solid var(--comic-black); }
 .lo-board {

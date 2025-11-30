@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
         7: lightsOutGame,
         8: nonogramGame,
         9: memoryMatchGame,
+        10: floodFillGame,
+        11: flappyBirdGame,
+        12: snowQueensGame,
         // more days can be added here
     };
 
@@ -260,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
         progress[day] = true;
         localStorage.setItem('snoopy_xmas_progress', JSON.stringify(progress));
 
-        alert("Good job! Snoopy is proud.");
         gameOverlay.classList.add('hidden');
         initGrid(); // Refresh grid to show checkmark
     }
@@ -1442,7 +1444,7 @@ Tip: Use logic — no guessing needed.`
 
         const wrap = document.createElement('div');
         wrap.className = 'lo-wrapper';
-                wrap.innerHTML = `
+        wrap.innerHTML = `
             <h3>Lights Out</h3>
             <div class="lo-container">
               <aside class="lo-sidebar">
@@ -1459,11 +1461,11 @@ Tip: Use logic — no guessing needed.`
 
         const boardEl = wrap.querySelector('#lo-board');
         const helpBtn = wrap.querySelector('#lo-help');
-    const loadBtn = wrap.querySelector('#lo-load');
+        const loadBtn = wrap.querySelector('#lo-load');
 
         function showHelp() {
             showModal(
-`Goal: Turn all lights OFF.
+                `Goal: Turn all lights OFF.
 
 Rules:
 - Tap a cell to toggle it and its up/down/left/right neighbors.
@@ -1528,56 +1530,56 @@ Rules:
             // Start from all-off, then apply a fixed list of moves to create a known-solvable board
             restart();
             // Coordinates are 0-indexed: [row, col]
-            const moves = [ [0,0], [0,2], [1,3], [2,1], [3,4], [4,2] ];
-            moves.forEach(([r,c]) => applyMove(r, c));
+            const moves = [[0, 0], [0, 2], [1, 3], [2, 1], [3, 4], [4, 2]];
+            moves.forEach(([r, c]) => applyMove(r, c));
             render();
         }
 
-    loadBtn.addEventListener('click', loadFixedPuzzle);
+        loadBtn.addEventListener('click', loadFixedPuzzle);
 
         // init with a fixed puzzle instead of random
         loadFixedPuzzle();
     }
 
-    // 8) Nonogram (Day 8) - Heart shape 5x5
+    // 8) Nonogram (Day 8) - 5x5
     function nonogramGame(root, onWin) {
         root.innerHTML = '';
-        // Heart pattern solution (1 = filled)
+        // pattern solution (1 = filled)
         const SOL = [
-            [0,1,0,1,0],
-            [1,1,1,1,1],
-            [1,1,1,1,1],
-            [0,1,1,1,0],
-            [0,0,1,0,0]
+            [0, 1, 0, 1, 0],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 0],
+            [0, 0, 1, 0, 0]
         ];
         const SIZE = 5;
         // Derive clues (arrays of run lengths)
         function cluesForLine(arr) {
             const runs = [];
             let count = 0;
-            for (let i=0;i<arr.length;i++) {
-                if (arr[i]) count++; else if (count){ runs.push(count); count=0; }
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i]) count++; else if (count) { runs.push(count); count = 0; }
             }
             if (count) runs.push(count);
-            return runs.length?runs:[0];
+            return runs.length ? runs : [0];
         }
         const rowClues = SOL.map(row => cluesForLine(row));
         const colClues = [];
-        for (let c=0;c<SIZE;c++) {
-            const col = SOL.map(r=>r[c]);
+        for (let c = 0; c < SIZE; c++) {
+            const col = SOL.map(r => r[c]);
             colClues.push(cluesForLine(col));
         }
 
         // Board states: 0=unknown, 1=filled, 2=marked X
-        let board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+        let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
 
         const wrap = document.createElement('div');
         wrap.className = 'nonogram-wrapper';
         wrap.innerHTML = `
-            <h3>Nonogram Heart</h3>
+            <h3>Nonogram</h3>
             <div class="nonogram-container">
               <aside class="nonogram-sidebar">
-                <div class="nonogram-info">Fill cells to reveal a heart. Use clues: numbers = blocks of filled squares in that order.</div>
+                <div class="nonogram-info">Fill cells to reveal the secret. Use clues: numbers = blocks of filled squares in that order.</div>
                 <div class="nonogram-controls">
                     <button class="comic-btn-small" id="ng-help">How to play</button>
                     <button class="comic-btn-small" id="ng-check">Check</button>
@@ -1603,68 +1605,68 @@ Rules:
         const clearBtn = wrap.querySelector('#ng-clear');
 
         function renderClues() {
-            rowCluesEl.innerHTML='';
-            rowClues.forEach(rc=>{
-                const div=document.createElement('div');
-                div.className='ng-row-clue';
-                div.textContent=rc.join(' ');
+            rowCluesEl.innerHTML = '';
+            rowClues.forEach(rc => {
+                const div = document.createElement('div');
+                div.className = 'ng-row-clue';
+                div.textContent = rc.join(' ');
                 rowCluesEl.appendChild(div);
             });
-            colCluesEl.innerHTML='';
-            colClues.forEach(cc=>{
-                const div=document.createElement('div');
-                div.className='ng-col-clue';
-                div.textContent=cc.join('\n');
+            colCluesEl.innerHTML = '';
+            colClues.forEach(cc => {
+                const div = document.createElement('div');
+                div.className = 'ng-col-clue';
+                div.textContent = cc.join('\n');
                 colCluesEl.appendChild(div);
             });
         }
 
         function renderGrid() {
-            gridEl.innerHTML='';
-            for (let r=0;r<SIZE;r++) {
-                for (let c=0;c<SIZE;c++) {
-                    const cell=document.createElement('div');
-                    let cls='nonogram-cell';
-                    if (board[r][c]===1) cls+=' filled';
-                    else if (board[r][c]===2) cls+=' marked';
-                    cell.className=cls;
-                    cell.dataset.r=String(r); cell.dataset.c=String(c);
-                    cell.addEventListener('click',()=>toggle(r,c));
+            gridEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    let cls = 'nonogram-cell';
+                    if (board[r][c] === 1) cls += ' filled';
+                    else if (board[r][c] === 2) cls += ' marked';
+                    cell.className = cls;
+                    cell.dataset.r = String(r); cell.dataset.c = String(c);
+                    cell.addEventListener('click', () => toggle(r, c));
                     gridEl.appendChild(cell);
                 }
             }
         }
 
-        function toggle(r,c){
-            board[r][c] = (board[r][c]+1)%3; // cycle 0->1->2->0
+        function toggle(r, c) {
+            board[r][c] = (board[r][c] + 1) % 3; // cycle 0->1->2->0
             renderGrid();
         }
 
-        function showHelp(){
-            showModal(`Nonogram basics:\nNumbers on rows/columns show lengths of consecutive FILLED cells in order.\nClick to cycle: empty → filled → X mark.\nGoal: Match clues to reveal the heart.`);
+        function showHelp() {
+            showModal(`Nonogram basics:\nNumbers on rows/columns show lengths of consecutive FILLED cells in order.\nClick to cycle: empty → filled → X mark.\nGoal: Match clues to reveal the secret.`);
         }
 
-        function isSolved(){
-            for (let r=0;r<SIZE;r++) for (let c=0;c<SIZE;c++) {
-                const should=SOL[r][c];
-                if (should===1 && board[r][c]!==1) return false;
-                if (should===0 && board[r][c]===1) return false;
+        function isSolved() {
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+                const should = SOL[r][c];
+                if (should === 1 && board[r][c] !== 1) return false;
+                if (should === 0 && board[r][c] === 1) return false;
             }
             return true;
         }
 
-        function check(){
-            if (isSolved()){ showModal('Heart complete! ❤️'); setTimeout(onWin,400); return; }
+        function check() {
+            if (isSolved()) { showModal('Heart complete! ❤️'); setTimeout(onWin, 400); return; }
             // Provide minimal feedback: highlight incorrect filled cells
-            Array.from(gridEl.children).forEach(cell=>cell.classList.remove('wrong'));
-            for (let r=0;r<SIZE;r++) for (let c=0;c<SIZE;c++) if (board[r][c]===1 && SOL[r][c]===0){
-                const idx=r*SIZE+c; gridEl.children[idx].classList.add('wrong');
+            Array.from(gridEl.children).forEach(cell => cell.classList.remove('wrong'));
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] === 1 && SOL[r][c] === 0) {
+                const idx = r * SIZE + c; gridEl.children[idx].classList.add('wrong');
             }
             showModal('Not solved yet. Incorrect filled cells highlighted.');
         }
 
-        function clearBoard(){
-            board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+        function clearBoard() {
+            board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
             renderGrid();
         }
 
@@ -1682,17 +1684,17 @@ Rules:
         const ROWS = 4, COLS = 5; // 20 cards, 10 pairs
         const PAIRS = (ROWS * COLS) / 2;
         // 5 emojis + 5 image icons (10 pairs total)
-        const EMOJIS = ['🎄','🍪','⭐','⛄','❄️'];
+        const EMOJIS = ['🎄', '🍪', '⭐', '⛄', '❄️'];
         const ICONS = [
             'images/icon1.png',
-            'images/icon2.png'  ,
+            'images/icon2.png',
             'images/icon3.png',
             'images/icon4.png',
             'images/icon5.png'
         ];
         const ITEMS = [
-            ...EMOJIS.map(e => ({ type:'emoji', value:e })),
-            ...ICONS.map(src => ({ type:'icon', value:src }))
+            ...EMOJIS.map(e => ({ type: 'emoji', value: e })),
+            ...ICONS.map(src => ({ type: 'icon', value: src }))
         ];
         const bestKey = 'day9_memory_best_moves';
         let deck = [];
@@ -1733,19 +1735,19 @@ Rules:
                 const j = Math.floor(Math.random() * (i + 1));
                 [doubled[i], doubled[j]] = [doubled[j], doubled[i]];
             }
-            doubled.forEach(item => deck.push({ item, state:0 }));
+            doubled.forEach(item => deck.push({ item, state: 0 }));
         }
 
-                function render() {
+        function render() {
             gridEl.innerHTML = '';
             deck.forEach((card, idx) => {
                 const d = document.createElement('div');
-                                d.className = 'mm-card ' + (card.state === 2 ? 'matched' : card.state === 1 ? 'flipped' : '');
+                d.className = 'mm-card ' + (card.state === 2 ? 'matched' : card.state === 1 ? 'flipped' : '');
                 d.dataset.idx = String(idx);
-                                const backContent = card.item.type === 'emoji'
-                                        ? card.item.value
-                                        : `<img src="${card.item.value}" alt="icon" class="mm-img" onerror="this.style.visibility='hidden'" />`;
-                                d.innerHTML = `
+                const backContent = card.item.type === 'emoji'
+                    ? card.item.value
+                    : `<img src="${card.item.value}" alt="icon" class="mm-img" onerror="this.style.visibility='hidden'" />`;
+                d.innerHTML = `
                                     <div class="mm-inner">
                                         <div class="mm-front"></div>
                                         <div class="mm-back">${backContent}</div>
@@ -1818,6 +1820,535 @@ Rules:
         render();
         restartBtn.addEventListener('click', restart);
         helpBtn.addEventListener('click', showHelp);
+    }
+
+    // 10) Flood Fill (Day 10)
+    function floodFillGame(root, onWin) {
+        root.innerHTML = '';
+        const SIZE = 10;
+        const COLORS = ['#e63946', '#2a9d8f', '#457b9d', '#f4a261', '#8d5bd6']; // red, green, blue, orange, purple
+        const MOVES_LIMIT = 14;
+
+        let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        let moves = 0;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'ff-wrapper';
+        wrap.innerHTML = `
+            <h3>Flood Fill</h3>
+            <div class="ff-container">
+              <aside class="ff-sidebar">
+                <div class="ff-info">Start at the top-left. Pick colors to flood and spread until the whole board is one color.</div>
+                <div class="ff-stats">Moves: <span id="ff-moves">0</span>/<span id="ff-limit">${MOVES_LIMIT}</span></div>
+                <div class="ff-palette" id="ff-palette"></div>
+                <div class="ff-controls">
+                    <button class="comic-btn-small" id="ff-help">How to play</button>
+                    <button class="comic-btn-small" id="ff-restart">Restart</button>
+                </div>
+              </aside>
+              <div class="ff-board" id="ff-board" style="grid-template-columns: repeat(${SIZE}, 28px); grid-template-rows: repeat(${SIZE}, 28px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#ff-board');
+        const paletteEl = wrap.querySelector('#ff-palette');
+        const movesEl = wrap.querySelector('#ff-moves');
+        const helpBtn = wrap.querySelector('#ff-help');
+        const restartBtn = wrap.querySelector('#ff-restart');
+
+        function rnd(max) { return Math.floor(Math.random() * max); }
+
+        function buildBoard() {
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    board[r][c] = rnd(COLORS.length);
+                }
+            }
+            // Nudge to avoid trivial all-same
+            if (isComplete()) board[SIZE - 1][SIZE - 1] = (board[0][0] + 1) % COLORS.length;
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'ff-cell';
+                    cell.style.background = COLORS[board[r][c]];
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function renderPalette() {
+            paletteEl.innerHTML = '';
+            for (let i = 0; i < COLORS.length; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'ff-color-btn';
+                btn.style.background = COLORS[i];
+                btn.title = `Pick color ${i + 1}`;
+                btn.addEventListener('click', () => pick(i));
+                paletteEl.appendChild(btn);
+            }
+        }
+
+        function flood(targetColor) {
+            const startColor = board[0][0];
+            if (targetColor === startColor) return false;
+            const q = [[0, 0]];
+            const seen = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
+            seen[0][0] = true;
+            while (q.length) {
+                const [r, c] = q.shift();
+                board[r][c] = targetColor;
+                const nbrs = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+                for (const [nr, nc] of nbrs) {
+                    if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && !seen[nr][nc] && board[nr][nc] === startColor) {
+                        seen[nr][nc] = true;
+                        q.push([nr, nc]);
+                    }
+                }
+            }
+            // Expand to newly adjacent regions of same color as the new start color
+            // Second BFS to catch chained regions (optional but ensures continuous fill)
+            const newColor = targetColor;
+            const q2 = [[0, 0]];
+            const seen2 = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
+            seen2[0][0] = true;
+            while (q2.length) {
+                const [r, c] = q2.shift();
+                const nbrs = [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]];
+                for (const [nr, nc] of nbrs) {
+                    if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && !seen2[nr][nc] && board[nr][nc] === newColor) {
+                        seen2[nr][nc] = true;
+                        q2.push([nr, nc]);
+                    }
+                }
+            }
+            return true;
+        }
+
+        function isComplete() {
+            const v = board[0][0];
+            for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] !== v) return false;
+            return true;
+        }
+
+        function pick(colorIdx) {
+            const changed = flood(colorIdx);
+            if (!changed) return;
+            moves += 1;
+            movesEl.textContent = String(moves);
+            renderBoard();
+            if (isComplete()) {
+                showModal('All filled — festive splash!');
+                setTimeout(onWin, 400);
+                return;
+            }
+            if (moves >= MOVES_LIMIT) {
+                showModal('Out of moves! Try a different color order.');
+            }
+        }
+
+        function restart() {
+            moves = 0;
+            movesEl.textContent = '0';
+            buildBoard();
+            renderBoard();
+        }
+
+        function showHelp() {
+            showModal(`Goal: Make the entire board one color within ${MOVES_LIMIT} moves.\n\nRules:\n- The flood starts at the top-left cell.\n- Picking a color changes the contiguous region connected to the top-left.\n- Chain picks to grow the region until everything matches.`);
+        }
+
+        // init
+        buildBoard();
+        renderBoard();
+        renderPalette();
+        helpBtn.addEventListener('click', showHelp);
+        restartBtn.addEventListener('click', restart);
+    }
+
+    // 11) Flappy Bird Xmas (Day 11)
+    function flappyBirdGame(root, onWin) {
+        root.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.className = 'fb-wrapper';
+        wrap.innerHTML = `
+                        <h3>Flappy Santa</h3>
+                        <div class="fb-container">
+                            <aside class="fb-sidebar">
+                                <div class="fb-score">Score: <span id="fb-score">0</span> / 30</div>
+                                <button class="comic-btn-small" id="fb-restart">Restart</button>
+                                <button class="comic-btn-small" id="fb-help">Help</button>
+                                <div class="fb-hint">Tap / Space to flap. Reach 30.</div>
+                            </aside>
+                            <canvas id="fb-canvas" width="300" height="420"></canvas>
+                        </div>
+                `;
+        root.appendChild(wrap);
+
+        const canvas = wrap.querySelector('#fb-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = wrap.querySelector('#fb-score');
+        const restartBtn = wrap.querySelector('#fb-restart');
+        const helpBtn = wrap.querySelector('#fb-help');
+        // Load bird image
+        const birdImg = new Image();
+        birdImg.src = 'images/pic2.svg';
+        let birdImgReady = false;
+        birdImg.onload = () => { birdImgReady = true; };
+        birdImg.onerror = () => { birdImgReady = false; };
+
+        // Game constants
+        const GRAVITY = 0.34;
+        const FLAP_VELOCITY = -6.0;
+        const PIPE_INTERVAL = 3000; // ms (spawn cadence)
+        const INITIAL_PIPE_SPEED = 2.6; // base horizontal pipe speed
+        let currentPipeSpeed = INITIAL_PIPE_SPEED; // dynamic speed
+        const GAP_MIN = 110;
+        const GAP_MAX = 140;
+        const TOP_MARGIN = 30;
+        const BIRD_RADIUS = 14;
+        const TARGET_SCORE = 30;
+
+        // State
+        let birdY = canvas.height / 2;
+        let birdV = 0;
+        let pipes = []; // each pipe: { x, gapY, gapH, scored }
+        let lastPipeTime = 0;
+        let running = true;
+        let score = 0;
+        let frameReq = null;
+        let lastTs = performance.now();
+        let gameOver = false;
+
+        function randGapY(gapH) {
+            // ensure gap fits
+            const minY = TOP_MARGIN;
+            const maxY = canvas.height - TOP_MARGIN - gapH;
+            return Math.floor(minY + Math.random() * (maxY - minY));
+        }
+
+        function spawnPipe(ts) {
+            const gapH = GAP_MIN + Math.random() * (GAP_MAX - GAP_MIN);
+            pipes.push({ x: canvas.width + 40, gapY: randGapY(gapH), gapH, scored: false });
+            lastPipeTime = ts;
+        }
+
+        function resetGame() {
+            birdY = canvas.height / 2;
+            birdV = 0;
+            pipes = [];
+            lastPipeTime = 0;
+            running = true;
+            score = 0;
+            gameOver = false;
+            scoreEl.textContent = '0';
+            if (frameReq) cancelAnimationFrame(frameReq);
+            lastTs = performance.now();
+            currentPipeSpeed = INITIAL_PIPE_SPEED; // reset dynamic speed
+            frameReq = requestAnimationFrame(loop);
+        }
+
+        function flap() {
+            if (!running) return;
+            birdV = FLAP_VELOCITY;
+        }
+
+        function showHelp() {
+            showModal(`Goal: Reach score ${TARGET_SCORE}.\n\nControls:\n- Click / tap / space to flap upward.\n- Avoid snowy pipes.\nScore increases after passing a pipe. Good luck, Santa!`);
+        }
+
+        function collidePipe(pipe) {
+            const birdX = 100; // fixed horizontal position
+            // Pipe rectangles: top: (pipe.x,0, pipeWidth, gapY), bottom: (pipe.x, gapY+gapH, pipeWidth, canvas.height - (gapY+gapH))
+            const pipeW = 70;
+            // Bird bounding box approximation
+            const bx1 = birdX - BIRD_RADIUS + 4;
+            const bx2 = birdX + BIRD_RADIUS - 4;
+            const by1 = birdY - BIRD_RADIUS + 4;
+            const by2 = birdY + BIRD_RADIUS - 4;
+            // Collision if within pipe x span and outside gap vertical span
+            if (bx2 >= pipe.x && bx1 <= pipe.x + pipeW) {
+                if (by1 < pipe.gapY || by2 > pipe.gapY + pipe.gapH) return true;
+            }
+            return false;
+        }
+
+        function loop(ts) {
+            frameReq = requestAnimationFrame(loop);
+            const dt = ts - lastTs;
+            lastTs = ts;
+            if (!running) return;
+
+            // Spawn pipes
+            if (ts - lastPipeTime > PIPE_INTERVAL) spawnPipe(ts);
+
+            // Physics
+            birdV += GRAVITY;
+            birdY += birdV;
+
+            // Boundaries
+            if (birdY < BIRD_RADIUS) { birdY = BIRD_RADIUS; birdV = 0; }
+            if (birdY > canvas.height - BIRD_RADIUS) { endGame(false); }
+
+            // Move pipes with dynamic speed
+            pipes.forEach(p => p.x -= currentPipeSpeed);
+            // Remove offscreen
+            pipes = pipes.filter(p => p.x > -120);
+
+            // Check collisions & scoring
+            for (const p of pipes) {
+                if (collidePipe(p)) { endGame(false); break; }
+                const birdX = 100;
+                if (!p.scored && p.x + 70 < birdX) {
+                    p.scored = true;
+                    score += 1;
+                    scoreEl.textContent = String(score);
+                    // Increase pipe speed modestly every 5 points before final target
+                    if (score % 5 === 0 && score < TARGET_SCORE) {
+                        currentPipeSpeed += 0.35;
+                    }
+                    if (score >= TARGET_SCORE) { endGame(true); break; }
+                }
+            }
+
+            draw();
+        }
+
+        function endGame(won) {
+            if (gameOver) return;
+            gameOver = true;
+            running = false;
+            if (won) {
+                showModal('Sleigh ride success!');
+                setTimeout(onWin, 400);
+            } else {
+                showModal('Crash! Try again.');
+            }
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#dff3ff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Snow ground
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+            // Decorative faint snowflakes
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            for (let i = 0; i < 25; i++) {
+                const x = (i * 37 + (lastTs * 0.05) % 400) % 400;
+                const y = (i * 53) % 560;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawBird() {
+            const birdX = 100;
+            ctx.save();
+            ctx.translate(birdX, birdY);
+            // Draw image if ready; fallback to circle
+            if (birdImgReady) {
+                const w = BIRD_RADIUS * 2.2;
+                const h = BIRD_RADIUS * 2.2;
+                ctx.drawImage(birdImg, -w / 2, -h / 2, w, h);
+            } else {
+                ctx.fillStyle = '#ff3131';
+                ctx.beginPath();
+                ctx.arc(0, 0, BIRD_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawPipes() {
+            ctx.fillStyle = '#2d6a4f';
+            pipes.forEach(p => {
+                const pipeW = 70;
+                // top pipe
+                ctx.fillRect(p.x, 0, pipeW, p.gapY);
+                // bottom pipe
+                ctx.fillRect(p.x, p.gapY + p.gapH, pipeW, canvas.height - (p.gapY + p.gapH));
+                // snow cap
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(p.x, p.gapY - 6, pipeW, 6);
+                ctx.fillRect(p.x, p.gapY + p.gapH, pipeW, 6);
+                ctx.fillStyle = '#2d6a4f';
+            });
+        }
+
+        function draw() {
+            drawBackground();
+            drawPipes();
+            drawBird();
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = '24px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(score >= TARGET_SCORE ? 'You Win!' : 'Game Over', canvas.width / 2, canvas.height / 2 - 8);
+                ctx.font = '14px sans-serif';
+                ctx.fillText('Press Restart', canvas.width / 2, canvas.height / 2 + 18);
+            }
+        }
+
+        // Input handlers
+        function keyHandler(e) {
+            if (e.code === 'Space') { e.preventDefault(); flap(); }
+        }
+        function clickHandler() { flap(); }
+
+        restartBtn.addEventListener('click', resetGame);
+        helpBtn.addEventListener('click', showHelp);
+        window.addEventListener('keydown', keyHandler);
+        canvas.addEventListener('mousedown', clickHandler);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); flap(); }, { passive: false });
+
+        // Cleanup when overlay closes
+        const observer = new MutationObserver(() => {
+            if (document.getElementById('game-overlay').classList.contains('hidden')) {
+                running = false;
+                if (frameReq) cancelAnimationFrame(frameReq);
+                window.removeEventListener('keydown', keyHandler);
+                canvas.removeEventListener('mousedown', clickHandler);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.getElementById('game-overlay'), { attributes: true, attributeFilter: ['class'] });
+
+        // Start
+        resetGame();
+    }
+
+    // 12) Snow Queens (Day 12)
+    function snowQueensGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 9; // 9x9 grid with 9 regions
+        const EMPTY = 0, MARK = 1, QUEEN = 2;
+        let board = Array.from({ length: N }, () => Array(N).fill(EMPTY));
+        const regions = [
+            [2, 0, 0, 0, 0, 0, 1, 1, 1],
+            [2, 2, 3, 3, 3, 0, 4, 4, 1],
+            [2, 3, 3, 3, 3, 5, 4, 4, 1],
+            [2, 3, 3, 3, 5, 5, 5, 1, 1],
+            [2, 3, 3, 6, 6, 5, 1, 1, 1],
+            [3, 3, 7, 6, 6, 1, 1, 1, 1],
+            [3, 7, 7, 7, 1, 1, 1, 1, 1],
+            [8, 8, 7, 1, 1, 1, 1, 1, 1],
+            [8, 8, 1, 1, 1, 1, 1, 1, 1]
+        ];
+        // Simple palette and controls
+        const wrap = document.createElement('div');
+        wrap.className = 'sq-wrapper';
+        wrap.innerHTML = `
+            <h3>Snow Queens</h3>
+            <div class="sq-container">
+              <aside class="sq-sidebar">
+                <div class="sq-info">Place 7 queens: one per row, column, and colored region. No touching (including diagonals).</div>
+                <div class="sq-controls">
+                    <button class="comic-btn-small" id="sq-check">Check</button>
+                    <button class="comic-btn-small" id="sq-reset">Reset</button>
+                    <button class="comic-btn-small" id="sq-help">How to play</button>
+                </div>
+              </aside>
+              <div class="sq-board" id="sq-board"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#sq-board');
+        const checkBtn = wrap.querySelector('#sq-check');
+        const resetBtn = wrap.querySelector('#sq-reset');
+        const helpBtn = wrap.querySelector('#sq-help');
+
+        function showHelp() {
+            showModal(`Goal: Place ${N} queens.\nRules:\n- Exactly one per row, column, and colored region.\n- No two queens adjacent (including diagonals).\nControls: Tap a cell to cycle: Empty → X → Queen.`);
+        }
+
+        function render() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `sq-cell region-${regions[r][c]}`;
+                    cell.dataset.r = String(r);
+                    cell.dataset.c = String(c);
+                    const v = board[r][c];
+                    cell.textContent = v === QUEEN ? '👑' : (v === MARK ? '✕' : '');
+                    cell.addEventListener('click', () => onCell(r, c));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function inBounds(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
+
+        function onCell(r, c) {
+            const cur = board[r][c];
+            const next = (cur + 1) % 3; // EMPTY->MARK->QUEEN->EMPTY
+            board[r][c] = next;
+            render();
+            validate(true);
+        }
+
+        function rowQueenCount(r) { let t = 0; for (let c = 0; c < N; c++) if (board[r][c] === QUEEN) t++; return t; }
+        function colQueenCount(c) { let t = 0; for (let r = 0; r < N; r++) if (board[r][c] === QUEEN) t++; return t; }
+        function regionQueenCount(id) { let t = 0; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (regions[r][c] === id && board[r][c] === QUEEN) t++; return t; }
+
+        function clearInvalidHighlights() {
+            Array.from(boardEl.children).forEach(el => el.classList.remove('invalid'));
+        }
+        function markInvalid(r, c) { const idx = r * N + c; const el = boardEl.children[idx]; if (el) el.classList.add('invalid'); }
+
+        function validate(live = false) {
+            clearInvalidHighlights();
+            let ok = true;
+            // No adjacent queens
+            for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (board[r][c] === QUEEN) {
+                const dirs = [
+                    [-1, -1], [-1, 0], [-1, 1],
+                    [0, -1], [0, 1],
+                    [1, -1], [1, 0], [1, 1]
+                ];
+                for (const [dr, dc] of dirs) {
+                    const nr = r + dr, nc = c + dc;
+                    if (inBounds(nr, nc) && board[nr][nc] === QUEEN) { ok = false; markInvalid(r, c); markInvalid(nr, nc); }
+                }
+            }
+            // Row/Col must have at most one queen live; exactly one upon final check
+            for (let r = 0; r < N; r++) { const cnt = rowQueenCount(r); if (cnt > 1) { ok = false; for (let c = 0; c < N; c++) if (board[r][c] === QUEEN) markInvalid(r, c); } }
+            for (let c = 0; c < N; c++) { const cnt = colQueenCount(c); if (cnt > 1) { ok = false; for (let r = 0; r < N; r++) if (board[r][c] === QUEEN) markInvalid(r, c); } }
+            // Region at most one live; exactly one on final
+            for (let id = 0; id < N; id++) { const cnt = regionQueenCount(id); if (cnt > 1) { ok = false; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (regions[r][c] === id && board[r][c] === QUEEN) markInvalid(r, c); } }
+            if (!live) {
+                // Final exact one per row/col/region
+                for (let r = 0; r < N; r++) if (rowQueenCount(r) !== 1) ok = false;
+                for (let c = 0; c < N; c++) if (colQueenCount(c) !== 1) ok = false;
+                for (let id = 0; id < N; id++) if (regionQueenCount(id) !== 1) ok = false;
+            }
+            return ok;
+        }
+
+        function isComplete() { let q = 0; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (board[r][c] === QUEEN) q++; return q === N; }
+
+        function checkWin() {
+            if (!isComplete()) { showModal('Place exactly one queen in each row, column, and region.'); return; }
+            if (validate(false)) { showModal('Regal logic! Puzzle solved.'); setTimeout(onWin, 400); }
+            else { showModal('Conflicts remain. Check rows, columns, regions, and adjacencies.'); }
+        }
+
+        function resetBoard() { board = Array.from({ length: N }, () => Array(N).fill(EMPTY)); render(); clearInvalidHighlights(); }
+
+        // init
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', resetBoard);
+        checkBtn.addEventListener('click', checkWin);
     }
 
     // 4) Minesweeper (Day 4)
