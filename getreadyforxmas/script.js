@@ -64,6 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
         5: g2048Game,
         6: tangoGame,
         7: lightsOutGame,
+        8: nonogramGame,
+        9: memoryMatchGame,
         // more days can be added here
     };
 
@@ -129,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         giftCard.style.position = 'relative';
         const giftNum = document.createElement('span');
         giftNum.classList.add('day-number');
-        giftNum.innerText = '25';
+        giftNum.innerText = '🎁';
         giftCard.appendChild(giftNum);
         // Progress label
         const prog = document.createElement('div');
@@ -1535,6 +1537,287 @@ Rules:
 
         // init with a fixed puzzle instead of random
         loadFixedPuzzle();
+    }
+
+    // 8) Nonogram (Day 8) - Heart shape 5x5
+    function nonogramGame(root, onWin) {
+        root.innerHTML = '';
+        // Heart pattern solution (1 = filled)
+        const SOL = [
+            [0,1,0,1,0],
+            [1,1,1,1,1],
+            [1,1,1,1,1],
+            [0,1,1,1,0],
+            [0,0,1,0,0]
+        ];
+        const SIZE = 5;
+        // Derive clues (arrays of run lengths)
+        function cluesForLine(arr) {
+            const runs = [];
+            let count = 0;
+            for (let i=0;i<arr.length;i++) {
+                if (arr[i]) count++; else if (count){ runs.push(count); count=0; }
+            }
+            if (count) runs.push(count);
+            return runs.length?runs:[0];
+        }
+        const rowClues = SOL.map(row => cluesForLine(row));
+        const colClues = [];
+        for (let c=0;c<SIZE;c++) {
+            const col = SOL.map(r=>r[c]);
+            colClues.push(cluesForLine(col));
+        }
+
+        // Board states: 0=unknown, 1=filled, 2=marked X
+        let board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'nonogram-wrapper';
+        wrap.innerHTML = `
+            <h3>Nonogram Heart</h3>
+            <div class="nonogram-container">
+              <aside class="nonogram-sidebar">
+                <div class="nonogram-info">Fill cells to reveal a heart. Use clues: numbers = blocks of filled squares in that order.</div>
+                <div class="nonogram-controls">
+                    <button class="comic-btn-small" id="ng-help">How to play</button>
+                    <button class="comic-btn-small" id="ng-check">Check</button>
+                    <button class="comic-btn-small" id="ng-clear">Clear board</button>
+                </div>
+              </aside>
+              <div class="nonogram-grid-wrap">
+                <div class="nonogram-col-clues" id="ng-col-clues"></div>
+                <div class="nonogram-row">
+                  <div class="nonogram-row-clues" id="ng-row-clues"></div>
+                  <div class="nonogram-grid" id="ng-grid"></div>
+                </div>
+              </div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const gridEl = wrap.querySelector('#ng-grid');
+        const rowCluesEl = wrap.querySelector('#ng-row-clues');
+        const colCluesEl = wrap.querySelector('#ng-col-clues');
+        const helpBtn = wrap.querySelector('#ng-help');
+        const checkBtn = wrap.querySelector('#ng-check');
+        const clearBtn = wrap.querySelector('#ng-clear');
+
+        function renderClues() {
+            rowCluesEl.innerHTML='';
+            rowClues.forEach(rc=>{
+                const div=document.createElement('div');
+                div.className='ng-row-clue';
+                div.textContent=rc.join(' ');
+                rowCluesEl.appendChild(div);
+            });
+            colCluesEl.innerHTML='';
+            colClues.forEach(cc=>{
+                const div=document.createElement('div');
+                div.className='ng-col-clue';
+                div.textContent=cc.join('\n');
+                colCluesEl.appendChild(div);
+            });
+        }
+
+        function renderGrid() {
+            gridEl.innerHTML='';
+            for (let r=0;r<SIZE;r++) {
+                for (let c=0;c<SIZE;c++) {
+                    const cell=document.createElement('div');
+                    let cls='nonogram-cell';
+                    if (board[r][c]===1) cls+=' filled';
+                    else if (board[r][c]===2) cls+=' marked';
+                    cell.className=cls;
+                    cell.dataset.r=String(r); cell.dataset.c=String(c);
+                    cell.addEventListener('click',()=>toggle(r,c));
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function toggle(r,c){
+            board[r][c] = (board[r][c]+1)%3; // cycle 0->1->2->0
+            renderGrid();
+        }
+
+        function showHelp(){
+            showModal(`Nonogram basics:\nNumbers on rows/columns show lengths of consecutive FILLED cells in order.\nClick to cycle: empty → filled → X mark.\nGoal: Match clues to reveal the heart.`);
+        }
+
+        function isSolved(){
+            for (let r=0;r<SIZE;r++) for (let c=0;c<SIZE;c++) {
+                const should=SOL[r][c];
+                if (should===1 && board[r][c]!==1) return false;
+                if (should===0 && board[r][c]===1) return false;
+            }
+            return true;
+        }
+
+        function check(){
+            if (isSolved()){ showModal('Heart complete! ❤️'); setTimeout(onWin,400); return; }
+            // Provide minimal feedback: highlight incorrect filled cells
+            Array.from(gridEl.children).forEach(cell=>cell.classList.remove('wrong'));
+            for (let r=0;r<SIZE;r++) for (let c=0;c<SIZE;c++) if (board[r][c]===1 && SOL[r][c]===0){
+                const idx=r*SIZE+c; gridEl.children[idx].classList.add('wrong');
+            }
+            showModal('Not solved yet. Incorrect filled cells highlighted.');
+        }
+
+        function clearBoard(){
+            board = Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+            renderGrid();
+        }
+
+        // init
+        renderClues();
+        renderGrid();
+        helpBtn.addEventListener('click', showHelp);
+        checkBtn.addEventListener('click', check);
+        clearBtn.addEventListener('click', clearBoard);
+    }
+
+    // 9) Memory Match (Day 9)
+    function memoryMatchGame(root, onWin) {
+        root.innerHTML = '';
+        const ROWS = 4, COLS = 5; // 20 cards, 10 pairs
+        const PAIRS = (ROWS * COLS) / 2;
+        // 5 emojis + 5 image icons (10 pairs total)
+        const EMOJIS = ['🎄','🍪','⭐','⛄','❄️'];
+        const ICONS = [
+            'images/icon1.png',
+            'images/icon2.png'  ,
+            'images/icon3.png',
+            'images/icon4.png',
+            'images/icon5.png'
+        ];
+        const ITEMS = [
+            ...EMOJIS.map(e => ({ type:'emoji', value:e })),
+            ...ICONS.map(src => ({ type:'icon', value:src }))
+        ];
+        const bestKey = 'day9_memory_best_moves';
+        let deck = [];
+        let first = null; // {idx, symbol}
+        let lock = false;
+        let moves = 0;
+        let matched = 0;
+        let best = Number(localStorage.getItem(bestKey)) || null;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'mm-wrapper';
+        wrap.innerHTML = `
+            <h3>Memory Match</h3>
+            <div class="mm-container">
+              <aside class="mm-sidebar">
+                <div class="mm-info">Match all festive pairs. Fewer moves = better! Tap cards to reveal.</div>
+                <div class="mm-stats">Moves: <span id="mm-moves">0</span> | Best: <span id="mm-best">${best ?? '—'}</span></div>
+                <div class="mm-controls">
+                    <button class="comic-btn-small" id="mm-help">How to play</button>
+                    <button class="comic-btn-small" id="mm-restart">Restart</button>
+                </div>
+              </aside>
+              <div class="mm-grid" id="mm-grid" style="grid-template-columns: repeat(${COLS}, 100px); grid-template-rows: repeat(${ROWS}, 120px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const gridEl = wrap.querySelector('#mm-grid');
+        const movesEl = wrap.querySelector('#mm-moves');
+        const bestEl = wrap.querySelector('#mm-best');
+        const restartBtn = wrap.querySelector('#mm-restart');
+        const helpBtn = wrap.querySelector('#mm-help');
+
+        function buildDeck() {
+            deck = [];
+            const doubled = ITEMS.concat(ITEMS);
+            for (let i = doubled.length - 1; i >= 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [doubled[i], doubled[j]] = [doubled[j], doubled[i]];
+            }
+            doubled.forEach(item => deck.push({ item, state:0 }));
+        }
+
+                function render() {
+            gridEl.innerHTML = '';
+            deck.forEach((card, idx) => {
+                const d = document.createElement('div');
+                                d.className = 'mm-card ' + (card.state === 2 ? 'matched' : card.state === 1 ? 'flipped' : '');
+                d.dataset.idx = String(idx);
+                                const backContent = card.item.type === 'emoji'
+                                        ? card.item.value
+                                        : `<img src="${card.item.value}" alt="icon" class="mm-img" onerror="this.style.visibility='hidden'" />`;
+                                d.innerHTML = `
+                                    <div class="mm-inner">
+                                        <div class="mm-front"></div>
+                                        <div class="mm-back">${backContent}</div>
+                                    </div>
+                                `;
+                d.addEventListener('click', () => onFlip(idx));
+                gridEl.appendChild(d);
+            });
+        }
+
+        function onFlip(idx) {
+            if (lock) return;
+            const card = deck[idx];
+            if (card.state !== 0) return;
+            // reveal
+            card.state = 1;
+            render();
+            if (!first) {
+                first = { idx, key: card.item.value };
+                return;
+            }
+            // second card
+            moves++;
+            movesEl.textContent = String(moves);
+            if (card.item.value === first.key) {
+                // match
+                card.state = 2;
+                deck[first.idx].state = 2;
+                matched++;
+                first = null;
+                render();
+                checkWin();
+            } else {
+                lock = true;
+                setTimeout(() => {
+                    card.state = 0;
+                    deck[first.idx].state = 0;
+                    first = null;
+                    lock = false;
+                    render();
+                }, 850);
+            }
+        }
+
+        function checkWin() {
+            if (matched >= PAIRS) {
+                if (!best || moves < best) {
+                    best = moves;
+                    localStorage.setItem(bestKey, String(best));
+                    bestEl.textContent = String(best);
+                }
+                showModal(`All pairs found in ${moves} moves!`);
+                setTimeout(onWin, 500);
+            }
+        }
+
+        function restart() {
+            first = null; lock = false; moves = 0; matched = 0;
+            movesEl.textContent = '0';
+            buildDeck();
+            render();
+        }
+
+        function showHelp() {
+            showModal(`Goal: Match all pairs.\n\nClick a card to reveal, then find its twin.\nIf they differ they flip back after a short delay.\nFinish with the fewest moves for a better score.`);
+        }
+
+        // init
+        buildDeck();
+        render();
+        restartBtn.addEventListener('click', restart);
+        helpBtn.addEventListener('click', showHelp);
     }
 
     // 4) Minesweeper (Day 4)
