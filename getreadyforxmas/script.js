@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         10: floodFillGame,
         11: flappyBirdGame,
         12: snowQueensGame,
+        13: futoshikiGame,
         // more days can be added here
     };
 
@@ -2348,6 +2349,185 @@ Rules:
         render();
         helpBtn.addEventListener('click', showHelp);
         resetBtn.addEventListener('click', resetBoard);
+        checkBtn.addEventListener('click', checkWin);
+    }
+
+    // 13) Futoshiki (Day 13)
+    function futoshikiGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 7; // 7x7 Futoshiki
+        // Predefined full solution from your screenshot
+        const SOL = [
+            [7,4,2,6,1,3,5],
+            [1,2,5,4,3,6,7],
+            [3,1,4,2,7,5,6],
+            [6,3,1,5,4,7,2],
+            [2,5,7,3,6,4,1],
+            [4,7,6,1,5,2,3],
+            [5,6,3,7,2,1,4],
+        ];
+        // Inequalities inferred from the arrows in your layout (right and down only)
+        // Format: [r,c,dr,dc,op] where op is '<' meaning (r,c) < (r+dr,c+dc), or '>' meaning (r,c) > (r+dr,c+dc)
+        const INEQ = [
+            // Right arrows '>'
+            [0,0,0,1,'>'], // after c1r1
+            [0,1,0,1,'>'], // after c2r1
+            [2,2,0,1,'>'], // after c3r3
+            [6,1,0,1,'>'], // after c2r7
+            // Right arrows '<'
+            [0,4,0,1,'<'], // after c5r1
+            [0,5,0,1,'<'], // after c6r1
+            [1,0,0,1,'<'], // after c1r2
+            [1,1,0,1,'<'], // after c2r2
+            [1,5,0,1,'<'], // after c6r2
+            [4,0,0,1,'<'], // after c1r5
+            // Down arrows '˅' (op '<')
+            [1,3,1,0,'<'], // under c4r2
+            [3,3,1,0,'<'], // under c4r4
+            [4,3,1,0,'<'], // under c4r5
+            [2,4,1,0,'<'], // under c5r3
+            [4,5,1,0,'<'], // under c6r5
+            [5,5,1,0,'<'], // under c6r6
+            // Up arrows '˄' (op '>') placed under cell (between it and below)
+            [3,2,1,0,'>'], // under c3r4
+            [5,6,1,0,'>'], // under c7r6
+        ];
+        // Givens inferred from the base screenshot (visible numbers)
+        const GIVENS = [
+            [0,3,6],
+            // removed c3r2 (was [1,2,5])
+            [2,5,5],
+            [4,1,5], [4,3,3],
+            // removed c2r7 (was [6,1,6])
+            // updated: add c3r7 and c6r5
+            [6,2,3], // c3r7
+            [4,5,4]  // c6r5
+        ];
+
+        let board = Array.from({length:N}, ()=>Array(N).fill(0));
+        for (const [r,c,v] of GIVENS) board[r][c]=v;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'fu-wrapper';
+        wrap.innerHTML = `
+            <h3>Futoshiki</h3>
+            <div class="fu-container">
+              <aside class="fu-sidebar">
+                <div class="fu-info">Fill ${N}×${N} with digits 1–${N}. No repeats in any row or column. Respect all < and > between neighboring cells.</div>
+                <div class="fu-controls">
+                    <button class="comic-btn-small" id="fu-check">Check</button>
+                    <button class="comic-btn-small" id="fu-reset">Reset</button>
+                    <button class="comic-btn-small" id="fu-help">How to play</button>
+                </div>
+              </aside>
+              <div class="fu-board" id="fu-board"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#fu-board');
+        const checkBtn = wrap.querySelector('#fu-check');
+        const resetBtn = wrap.querySelector('#fu-reset');
+        const helpBtn = wrap.querySelector('#fu-help');
+
+        function showHelp(){
+            showModal(`Goal: Complete the grid with digits 1–${N}.\nRules:\n- No repeats in any row or column.\n- Inequalities between adjacent cells must hold (A < B or A > B).\nControls:\n- Click a cell to cycle 0→1→…→${N}. Given cells are fixed.`);
+        }
+
+        function isGiven(r,c){ return GIVENS.some(g=>g[0]===r && g[1]===c); }
+
+        function render(){
+            boardEl.innerHTML = '';
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const cell=document.createElement('div');
+                    cell.className='fu-cell';
+                    if (isGiven(r,c)) cell.classList.add('given');
+                    cell.dataset.r=String(r); cell.dataset.c=String(c);
+                    cell.textContent = board[r][c] ? String(board[r][c]) : '';
+                    cell.addEventListener('click', ()=>{
+                        if (isGiven(r,c)) return;
+                        board[r][c] = (board[r][c] % N) + 1; // cycle 1..N
+                        render();
+                        validate(true);
+                    });
+                    boardEl.appendChild(cell);
+                    // Draw right inequality if exists
+                    const right = INEQ.find(q=>q[0]===r && q[1]===c && q[2]===0 && q[3]===1);
+                    if (right){
+                        const arrow=document.createElement('div');
+                        arrow.className='fu-ineq hor';
+                        arrow.textContent = right[4]==='<' ? '‹' : '›';
+                        boardEl.appendChild(arrow);
+                    } else {
+                        const spacer=document.createElement('div'); spacer.className='fu-spacer hor'; boardEl.appendChild(spacer);
+                    }
+                }
+                // Row break: below inequalities
+                for (let c=0;c<N;c++){
+                    const down = INEQ.find(q=>q[0]===r && q[1]===c && q[2]===1 && q[3]===0);
+                    const el=document.createElement('div');
+                    el.className='fu-ineq ver';
+                    if (down){ el.textContent = down[4]==='<' ? '˅' : '˄'; }
+                    else { el.classList.add('spacer'); el.textContent=''; }
+                    boardEl.appendChild(el);
+                    // add spacer after each vertical indicator to align grid
+                    const spacer=document.createElement('div'); spacer.className='fu-spacer ver'; boardEl.appendChild(spacer);
+                }
+            }
+        }
+
+        function clearInvalid(){ Array.from(boardEl.querySelectorAll('.fu-cell')).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalid(r,c){ const idx = r*(N*2) + c*2; const cell = boardEl.children[idx]; if(cell) cell.classList.add('invalid'); }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok=true;
+            // Row/Col no repeats (excluding zeros when live)
+            for (let r=0;r<N;r++){
+                const seen={};
+                for (let c=0;c<N;c++){
+                    const v=board[r][c];
+                    if (v===0 && live) continue;
+                    if (v<1||v>N){ ok=false; markInvalid(r,c); }
+                    if (v){ if(seen[v]){ ok=false; markInvalid(r,c); markInvalid(r,seen[v]-1); } else { seen[v]=c+1; } }
+                }
+            }
+            for (let c=0;c<N;c++){
+                const seen={};
+                for (let r=0;r<N;r++){
+                    const v=board[r][c];
+                    if (v===0 && live) continue;
+                    if (v<1||v>N){ ok=false; markInvalid(r,c); }
+                    if (v){ if(seen[v]){ ok=false; markInvalid(r,c); markInvalid(seen[v]-1,c); } else { seen[v]=r+1; } }
+                }
+            }
+            // Inequalities
+            for (const [r,c,dr,dc,op] of INEQ){
+                const a=board[r][c]; const b=board[r+dr][c+dc];
+                if (a && b){
+                    if (op==='<' && !(a<b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                    if (op==='>' && !(a>b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                }
+            }
+            if (!live){
+                // Must match full solution to pass (predefined)
+                for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (board[r][c]!==SOL[r][c]) ok=false;
+            }
+            return ok;
+        }
+
+        function isComplete(){ for (let r=0;r<N;r++) for(let c=0;c<N;c++) if(!board[r][c]) return false; return true; }
+        function checkWin(){
+            if (!isComplete()){ showModal('Fill all cells with digits 1–7.'); return; }
+            if (validate(false)){ showModal('Futoshiki solved!'); setTimeout(onWin, 400); }
+            else { showModal('Some rules are broken. Check rows, columns, and inequalities.'); }
+        }
+        function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(0)); for (const [r,c,v] of GIVENS) board[r][c]=v; render(); clearInvalid(); }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
         checkBtn.addEventListener('click', checkWin);
     }
 
