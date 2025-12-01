@@ -194,6 +194,9 @@ header {
     box-shadow: 5px 5px 0px var(--comic-black);
 }
 
+.site-title { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; }
+.site-title-img { width:64px; height:64px; object-fit:contain; border:3px solid var(--comic-black); border-radius:12px; background:#fff; box-shadow:4px 4px 0 var(--comic-black); }
+
 h1 {
     font-weight: 700;
     font-size: 2.5rem;
