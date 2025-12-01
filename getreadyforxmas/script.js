@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function hangmanGame(root, onWin) {
         root.innerHTML = '';
         // Configure the secret phrase here (uppercase recommended). You can change this string.
-        const HANGMAN_SECRET = (new URLSearchParams(location.search).get('secret') || 'FARTY MEISTER').toUpperCase();
+        const HANGMAN_SECRET = (new URLSearchParams(location.search).get('secret') || 'JAZZ RHYTHMS').toUpperCase();
         const secret = HANGMAN_SECRET;
         const lockKey = 'xmas_hangman_day2_lock_until';
         const allowed = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
