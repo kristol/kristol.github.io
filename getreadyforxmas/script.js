@@ -1251,7 +1251,7 @@ Tip: Use logic — no guessing needed.`
             const pairs = [
                 // equals (matching SOL), placed to encourage deduction chains
                 { a: [0, 2], b: [0, 3], type: 'eq' },
-                { a: [2, 4], b: [2, 5], type: 'eq' },
+                { a: [2, 4], b: [2, 5], type: 'neq' },
                 // different (matching SOL)
                 { a: [2, 0], b: [3, 0], type: 'neq' },
                 { a: [1, 1], b: [1, 2], type: 'neq' },
