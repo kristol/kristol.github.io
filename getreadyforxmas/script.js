@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         11: flappyBirdGame,
         12: snowQueensGame,
         13: futoshikiGame,
+        14: starBattleGame,
         // more days can be added here
     };
 
@@ -2529,6 +2530,174 @@ Rules:
         helpBtn.addEventListener('click', showHelp);
         resetBtn.addEventListener('click', reset);
         checkBtn.addEventListener('click', checkWin);
+    }
+
+    // 14) Star Battle (Day 14)
+    function starBattleGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 10; // 10x10
+        const STARS_PER = 2; // per row/col/region
+        const EMPTY = 0, DOT = 1, STAR = 2;
+        const DEBUG_COORDS = true; // show r,c in title for quick verification
+        let board = Array.from({length:N}, ()=>Array(N).fill(EMPTY));
+        // Regions and SOL provided (groupA..groupJ mapped to 0..9)
+        const regions = [
+            [6,6,6,6,9,9,9,9,1,1],
+            [6,6,6,6,6,9,9,9,1,7],
+            [2,6,6,6,6,9,9,9,1,7],
+            [2,6,6,9,9,9,7,1,1,7],
+            [2,2,6,4,9,9,7,7,7,7],
+            [8,8,8,4,9,3,7,7,7,7],
+            [8,4,4,4,5,3,3,5,7,7],
+            [8,8,8,5,5,3,5,5,0,7],
+            [8,8,8,5,5,5,5,5,0,7],
+            [8,8,8,5,5,5,5,5,0,7]
+        ];
+        const SOL = [
+            [7,8],[0,9],     // A, B
+            [2,0],[3,0],     // C, C
+            [5,4],[5,5],[6,5],[8,6],[9,6], // D, D, F, F, F
+            [1,2],[4,2],[0,0],[2,2], // G, G, G, G
+            [5,7],[7,6],[8,7],[9,9], // H, H, H, H
+            [0,4],[1,4],[0,7],[1,7],[3,7], // J, J, J, J, J
+            [5,0],[6,0],[7,0],[8,0],[9,0], // I, I, I, I, I
+        ];
+
+        const wrap = document.createElement('div');
+        wrap.className = 'sb-wrapper';
+                wrap.innerHTML = `
+            <h3>Star Battle</h3>
+            <div class="sb-container">
+              <aside class="sb-sidebar">
+                <div class="sb-info">Place ${STARS_PER} stars in every row, column, and colored region. Stars cannot touch, even diagonally.</div>
+                <div class="sb-controls">
+                    <button class="comic-btn-small" id="sb-check">Check</button>
+                    <button class="comic-btn-small" id="sb-reset">Reset</button>
+                                        <button class="comic-btn-small" id="sb-hint">Hint</button>
+                    <button class="comic-btn-small" id="sb-help">How to play</button>
+                </div>
+              </aside>
+              <div class="sb-board" id="sb-board"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#sb-board');
+        const checkBtn = wrap.querySelector('#sb-check');
+        const resetBtn = wrap.querySelector('#sb-reset');
+        const helpBtn = wrap.querySelector('#sb-help');
+        const hintBtn = wrap.querySelector('#sb-hint');
+
+        function showHelp(){
+            showModal(`Goal: Place ${STARS_PER} stars in each row, column, and region.\nRules:\n- Stars cannot be adjacent, including diagonals.\nControls:\n- Tap to cycle: Empty → Dot → Star.`);
+        }
+
+        function render(){
+            boardEl.innerHTML = '';
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const cell=document.createElement('div');
+                    cell.className = `sb-cell region-${regions[r][c]}`;
+                    const v=board[r][c];
+                    cell.textContent = v===STAR ? '★' : (v===DOT ? '•' : '');
+                    if (DEBUG_COORDS) cell.title = `r${r+1} c${c+1}`;
+                    cell.addEventListener('click', ()=>{
+                        board[r][c] = (board[r][c]+1)%3; // EMPTY->DOT->STAR->EMPTY
+                        render();
+                        validate(true);
+                    });
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalid(r,c){ const idx=r*N+c; const el=boardEl.children[idx]; if(el) el.classList.add('invalid'); }
+        function inBounds(r,c){ return r>=0 && r<N && c>=0 && c<N; }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok=true;
+            // adjacency rule
+            for (let r=0;r<N;r++) for(let c=0;c<N;c++) if (board[r][c]===STAR){
+                const dirs=[-1,0,1];
+                for (let dr of dirs) for (let dc of dirs){ if (dr===0&&dc===0) continue; const nr=r+dr, nc=c+dc; if(inBounds(nr,nc)&&board[nr][nc]===STAR){ ok=false; markInvalid(r,c); markInvalid(nr,nc);} }
+            }
+            // per row/col counts (at most live, exactly on final)
+            const rowCount = new Array(N).fill(0), colCount=new Array(N).fill(0), regCount={};
+            for (let r=0;r<N;r++) for(let c=0;c<N;c++) if (board[r][c]===STAR){ rowCount[r]++; colCount[c]++; const id=regions[r][c]; regCount[id]=(regCount[id]||0)+1; }
+            for (let r=0;r<N;r++) if (rowCount[r]>STARS_PER){ ok=false; for(let c=0;c<N;c++) if(board[r][c]===STAR) markInvalid(r,c);} 
+            for (let c=0;c<N;c++) if (colCount[c]>STARS_PER){ ok=false; for(let r=0;r<N;r++) if(board[r][c]===STAR) markInvalid(r,c);} 
+            for (let id=0; id<N; id++){ const cnt=regCount[id]||0; if (cnt>STARS_PER){ ok=false; for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(regions[r][c]===id && board[r][c]===STAR) markInvalid(r,c);} }
+            if (!live){
+                // final: require counts and adjacency only; do not enforce specific SOL positions
+                for (let r=0;r<N;r++) if (rowCount[r]!==STARS_PER) ok=false;
+                for (let c=0;c<N;c++) if (colCount[c]!==STARS_PER) ok=false;
+                for (let id=0; id<N; id++) if ((regCount[id]||0)!==STARS_PER) ok=false;
+            }
+            return ok;
+        }
+
+        function isComplete(){ let s=0; for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(board[r][c]===STAR) s++; return s===N*STARS_PER; }
+        function checkWin(){
+            if (!isComplete()){ showModal(`Place all ${N*STARS_PER} stars respecting the rules.`); return; }
+            if (validate(false)){ showModal('Sparkling! Puzzle solved.'); setTimeout(onWin, 400); }
+            else { showModal('Conflicts remain. Check adjacency and per-row/col/region counts.'); }
+        }
+        function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(EMPTY)); render(); clearInvalid(); }
+
+        // Hint system: applies simple deductions
+        function canBeStar(r,c){
+            if (board[r][c]!==EMPTY) return false;
+            // adjacency
+            for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++){
+                if (dr===0&&dc===0) continue; const nr=r+dr, nc=c+dc; if(inBounds(nr,nc) && board[nr][nc]===STAR) return false;
+            }
+            // row/col/region capacity
+            const id=regions[r][c];
+            let rowStars=0, colStars=0, regStars=0;
+            for (let k=0;k<N;k++){ if(board[r][k]===STAR) rowStars++; if(board[k][c]===STAR) colStars++; }
+            for (let rr=0; rr<N; rr++) for (let cc=0; cc<N; cc++) if(regions[rr][cc]===id && board[rr][cc]===STAR) regStars++;
+            if (rowStars>=STARS_PER || colStars>=STARS_PER || regStars>=STARS_PER) return false;
+            return true;
+        }
+
+        function clearPulses(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('pulse')); }
+        function pulseCell(r,c){ clearPulses(); const idx=r*N+c; const el=boardEl.children[idx]; if(el){ el.classList.add('pulse'); setTimeout(()=>el.classList.remove('pulse'), 1600); } }
+
+        function applyHint(){
+            // 1) Suggest a forgotten dot: a cell that cannot be a star
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    if (board[r][c]===EMPTY && !canBeStar(r,c)) { pulseCell(r,c); return; }
+                }
+            }
+            // 2) If a row/col/region has remaining stars equal to number of candidate cells, pulse those candidates
+            // Rows
+            for (let r=0;r<N;r++){
+                let rowStars=0, candidates=[]; for(let c=0;c<N;c++){ if(board[r][c]===STAR) rowStars++; if(canBeStar(r,c)) candidates.push([r,c]); }
+                const remaining=STARS_PER-rowStars; if (remaining>0 && candidates.length===remaining){ candidates.forEach(([rr,cc])=>pulseCell(rr,cc)); return; }
+            }
+            // Columns
+            for (let c=0;c<N;c++){
+                let colStars=0, candidates=[]; for(let r=0;r<N;r++){ if(board[r][c]===STAR) colStars++; if(canBeStar(r,c)) candidates.push([r,c]); }
+                const remaining=STARS_PER-colStars; if (remaining>0 && candidates.length===remaining){ candidates.forEach(([rr,cc])=>pulseCell(rr,cc)); return; }
+            }
+            // Regions
+            const byRegion = new Map();
+            for (let r=0;r<N;r++) for(let c=0;c<N;c++){
+                const id=regions[r][c]; if(!byRegion.has(id)) byRegion.set(id,{stars:0,cands:[]}); const entry=byRegion.get(id);
+                if (board[r][c]===STAR) entry.stars++; else if (canBeStar(r,c)) entry.cands.push([r,c]);
+            }
+            for (const [id,{stars,cands}] of byRegion){ const remaining=STARS_PER-stars; if (remaining>0 && cands.length===remaining){ cands.forEach(([rr,cc])=>pulseCell(rr,cc)); return; } }
+            showModal('No simple hint found. Try adjacency and per-row/col/region counts.');
+        }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
+        hintBtn.addEventListener('click', applyHint);
     }
 
     // 4) Minesweeper (Day 4)
