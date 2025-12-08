@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         12: snowQueensGame,
         13: futoshikiGame,
         14: starBattleGame,
+        15: skyscrapersGame,
         // more days can be added here
     };
 
@@ -2698,6 +2699,179 @@ Rules:
         resetBtn.addEventListener('click', reset);
         checkBtn.addEventListener('click', checkWin);
         hintBtn.addEventListener('click', applyHint);
+    }
+
+    // 15) Skyscrapers (Day 15)
+    function skyscrapersGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 6;
+        // Solution grid taken from the provided image
+        const SOL = [
+            [1,4,6,3,5,2],
+            [2,3,5,4,1,6],
+            [6,5,1,2,4,3],
+            [3,6,4,1,2,5],
+            [5,1,2,6,3,4],
+            [4,2,3,5,6,1]
+        ];
+        // Edge clues corresponding to that solution (top, bottom, left, right)
+        const TOP    = [3,3,1,3,2,2];
+        const BOTTOM = [3,2,4,2,1,4];
+        const LEFT   = [3,4,1,2,2,3];
+        const RIGHT  = [3,1,4,2,2,2];
+
+        const GIVENS = [
+            [1,4,1], // r2 c5 = 1
+            [2,5,3], // r3 c6 = 3
+            [3,3,1], // r4 c4 = 1
+            [5,3,5], // r6 c4 = 5
+        ];
+
+        let board = Array.from({length:N}, ()=>Array(N).fill(0));
+        for (const [r,c,v] of GIVENS) board[r][c]=v;
+        let cellEls = Array.from({length:N}, ()=>Array(N).fill(null));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'sk-wrapper';
+        wrap.innerHTML = `
+            <h3>Skyscrapers</h3>
+            <div class="sk-container">
+              <aside class="sk-sidebar">
+                <div class="sk-info">Fill the grid with numbers 1–${N}. Each row and column must contain all numbers without repeats. Edge clues show how many buildings are visible from that side (taller buildings hide shorter ones behind them).</div>
+                <div class="sk-controls">
+                    <button class="comic-btn-small" id="sk-check">Check</button>
+                    <button class="comic-btn-small" id="sk-reset">Reset</button>
+                    <button class="comic-btn-small" id="sk-help">How to play</button>
+                </div>
+              </aside>
+              <div class="sk-board" id="sk-board" style="grid-template-columns: repeat(${N+2}, 34px); grid-template-rows: repeat(${N+2}, 34px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#sk-board');
+        const checkBtn = wrap.querySelector('#sk-check');
+        const resetBtn = wrap.querySelector('#sk-reset');
+        const helpBtn = wrap.querySelector('#sk-help');
+
+        function showHelp(){
+            showModal(`Rules:\n- Place 1–${N} in each cell.\n- No repeats in any row or column.\n- Clues on the edges tell how many buildings are visible looking inwards. A taller building hides any shorter ones behind it.\n- Blue givens are fixed.\nControls:\n- Click a non-given cell to cycle its value.`);
+        }
+
+        function clearInvalid(){
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (cellEls[r][c]) cellEls[r][c].classList.remove('invalid');
+        }
+        function markInvalid(r,c){ if (cellEls[r][c]) cellEls[r][c].classList.add('invalid'); }
+
+        function visibleCount(arr){
+            let max=0, seen=0; for (const v of arr){ if (v>max){ max=v; seen++; } } return seen;
+        }
+
+        function isGiven(r,c){ return GIVENS.some(g=>g[0]===r && g[1]===c); }
+
+        function render(){
+            boardEl.innerHTML = '';
+            cellEls = Array.from({length:N}, ()=>Array(N).fill(null));
+
+            // top row: [blank] top clues [blank]
+            boardEl.appendChild(clueEl(''));
+            for (let c=0;c<N;c++) boardEl.appendChild(clueEl(TOP[c]||''));
+            boardEl.appendChild(clueEl(''));
+
+            // middle rows with left/right clues and cells
+            for (let r=0;r<N;r++){
+                boardEl.appendChild(clueEl(LEFT[r]||''));
+                for (let c=0;c<N;c++){
+                    const cell = document.createElement('div');
+                    cell.className = 'sk-cell';
+                    const v = board[r][c];
+                    cell.textContent = v ? String(v) : '';
+                    if (isGiven(r,c)){
+                        cell.classList.add('given');
+                    } else {
+                        cell.addEventListener('click', ()=>{
+                            board[r][c] = (board[r][c] % N) + 1; // 0->1..N->1
+                            render();
+                            validate(true);
+                        });
+                    }
+                    boardEl.appendChild(cell);
+                    cellEls[r][c] = cell;
+                }
+                boardEl.appendChild(clueEl(RIGHT[r]||''));
+            }
+
+            // bottom row
+            boardEl.appendChild(clueEl(''));
+            for (let c=0;c<N;c++) boardEl.appendChild(clueEl(BOTTOM[c]||''));
+            boardEl.appendChild(clueEl(''));
+        }
+
+        function clueEl(text){ const el=document.createElement('div'); el.className='sk-clue'; el.textContent=String(text||''); return el; }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok = true;
+
+            // Row/col uniqueness checks
+            for (let r=0;r<N;r++){
+                const seen = new Map();
+                for (let c=0;c<N;c++){
+                    const v=board[r][c]; if (!v) continue;
+                    if (v<1 || v>N){ ok=false; if(live) markInvalid(r,c); continue; }
+                    if (seen.has(v)){ ok=false; if(live){ markInvalid(r,c); markInvalid(r, seen.get(v)); } }
+                    else seen.set(v,c);
+                }
+            }
+            for (let c=0;c<N;c++){
+                const seen = new Map();
+                for (let r=0;r<N;r++){
+                    const v=board[r][c]; if (!v) continue;
+                    if (v<1 || v>N){ ok=false; if(live) markInvalid(r,c); continue; }
+                    if (seen.has(v)){ ok=false; if(live){ markInvalid(r,c); markInvalid(seen.get(v), c); } }
+                    else seen.set(v,r);
+                }
+            }
+
+            if (!live){
+                // all cells must be filled
+                for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (!board[r][c]) ok=false;
+
+                // verify row clues
+                for (let r=0;r<N;r++){
+                    const row = board[r];
+                    if (LEFT[r]){ if (visibleCount(row)!==LEFT[r]){ ok=false; for(let c=0;c<N;c++) markInvalid(r,c); } }
+                    if (RIGHT[r]){ const rev=[...row].reverse(); if (visibleCount(rev)!==RIGHT[r]){ ok=false; for(let c=0;c<N;c++) markInvalid(r,c); } }
+                }
+                // verify column clues
+                for (let c=0;c<N;c++){
+                    const col = board.map(r=>r[c]);
+                    if (TOP[c]){ if (visibleCount(col)!==TOP[c]){ ok=false; for(let r=0;r<N;r++) markInvalid(r,c); } }
+                    if (BOTTOM[c]){ const rev=[...col].reverse(); if (visibleCount(rev)!==BOTTOM[c]){ ok=false; for(let r=0;r<N;r++) markInvalid(r,c); } }
+                }
+                // verify uniqueness fully (no zeros already enforced)
+                for (let r=0;r<N;r++){
+                    const set=new Set(board[r]); if (set.size!==N) ok=false;
+                }
+                for (let c=0;c<N;c++){
+                    const set=new Set(board.map(r=>r[c])); if (set.size!==N) ok=false;
+                }
+            }
+            return ok;
+        }
+
+        function isComplete(){ for (let r=0;r<N;r++) for(let c=0;c<N;c++) if(!board[r][c]) return false; return true; }
+        function checkWin(){
+            if (!isComplete()){ showModal(`Fill all cells with digits 1–${N}.`); return; }
+            if (validate(false)){ showModal('City skyline looks perfect!'); setTimeout(onWin, 400); }
+            else { showModal('Some rules are broken. Check row/col uniqueness and edge clues.'); }
+        }
+        function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(0)); for (const [r,c,v] of GIVENS) board[r][c]=v; render(); clearInvalid(); }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
     }
 
     // 4) Minesweeper (Day 4)
