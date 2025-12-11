@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
         13: futoshikiGame,
         14: starBattleGame,
         15: skyscrapersGame,
+        16: tentsAndTreesGame,
+        17: networkGame,
+        18: neighborsGame,
         // more days can be added here
     };
 
@@ -2867,6 +2870,645 @@ Rules:
             else { showModal('Some rules are broken. Check row/col uniqueness and edge clues.'); }
         }
         function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(0)); for (const [r,c,v] of GIVENS) board[r][c]=v; render(); clearInvalid(); }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
+    }
+
+    // 16) Tents & Trees (Day 16)
+    function tentsAndTreesGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 8; // 8x8
+        const EMPTY = 0, GRASS = 1, TENT = 2, TREE = 3;
+        // Puzzle data (will be generated to guarantee solvability)
+        let TREES = [];
+        let ROW_TARGET = new Array(N).fill(0);
+        let COL_TARGET = new Array(N).fill(0);
+
+        let board = Array.from({length:N}, ()=>Array(N).fill(EMPTY));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'tt-wrapper';
+        wrap.innerHTML = `
+            <h3>Tents & Trees</h3>
+            <div class="tt-container">
+                            <aside class="tt-sidebar">
+                <div class="tt-info">Place tents so that each tent is next to at least one tree. Tents cannot touch each other (even diagonally). Match the tent counts for each row and column. Use grass to mark empty cells.</div>
+                <div class="tt-controls">
+                    <button class="comic-btn-small" id="tt-check">Check</button>
+                    <button class="comic-btn-small" id="tt-reset">Reset</button>
+                    <button class="comic-btn-small" id="tt-help">How to play</button>
+                </div>
+              </aside>
+              <div class="tt-board" id="tt-board" style="grid-template-columns: 34px repeat(${N}, 34px); grid-template-rows: repeat(${N}, 34px) 34px;"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#tt-board');
+        const checkBtn = wrap.querySelector('#tt-check');
+        const resetBtn = wrap.querySelector('#tt-reset');
+        const helpBtn = wrap.querySelector('#tt-help');
+
+        function showHelp(){
+            showModal(`Rules:\n- Each tent must be next to at least one tree.\n- Tents cannot touch other tents, even diagonally.\n- The number of tents in each row and column must match the clues.\nControls:\n- Click a cell to cycle: Empty → Grass → Tent. Trees are fixed.`);
+        }
+
+        function inBounds(r,c){ return r>=0 && r<N && c>=0 && c<N; }
+        function clearInvalid(){ Array.from(boardEl.querySelectorAll('.tt-cell')).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalidIdx(idx){ const el=boardEl.children[idx]; if(el) el.classList.add('invalid'); }
+        // Convert (r,c) cell coordinates to boardEl child index, accounting for top row clues and left row clues
+        // Layout: [corner] [N top clues], then for each row: [left clue] [N cells], finally bottom clue row
+        function idx(r,c){ const topOffset = 1 + N; const rowStride = 1 + N; return topOffset + r*rowStride + 1 + c; }
+
+        function render(){
+            boardEl.innerHTML = '';
+            // First cell blank (top-left corner of clues)
+            const corner=document.createElement('div'); corner.className='tt-clue-col'; corner.textContent=''; boardEl.appendChild(corner);
+            // Column clues top
+            for (let c=0;c<N;c++){ const el=document.createElement('div'); el.className='tt-clue-col'; el.textContent=String(COL_TARGET[c]); boardEl.appendChild(el); }
+            // Rows
+            for (let r=0;r<N;r++){
+                // Left row clue
+                const rc=document.createElement('div'); rc.className='tt-clue-row'; rc.textContent=String(ROW_TARGET[r]); boardEl.appendChild(rc);
+                // Cells
+                for (let c=0;c<N;c++){
+                    const cell=document.createElement('div');
+                    cell.className='tt-cell';
+                    const v=board[r][c];
+                    if (v===TREE){ cell.classList.add('tree'); cell.textContent='🌳'; }
+                    else if (v===TENT){ cell.classList.add('tent'); cell.textContent='⛺'; }
+                    else if (v===GRASS){ cell.classList.add('grass'); cell.textContent=''; }
+                    cell.addEventListener('click', ()=>{
+                        if (board[r][c]===TREE) return;
+                        const next = board[r][c]===EMPTY ? GRASS : (board[r][c]===GRASS ? TENT : EMPTY);
+                        board[r][c]=next;
+                        render();
+                        validate(true);
+                    });
+                    boardEl.appendChild(cell);
+                }
+            }
+            // Bottom row: spacer to align grid (optional blank)
+            const spacer=document.createElement('div'); spacer.className='tt-clue-col'; spacer.textContent=''; boardEl.appendChild(spacer);
+            for (let c=0;c<N;c++){ const el=document.createElement('div'); el.className='tt-clue-col muted'; el.textContent=''; boardEl.appendChild(el); }
+        }
+
+        // Generate a solvable puzzle by first picking a non-touching tent layout, then placing one adjacent tree per tent, then deriving row/col targets.
+        function generatePuzzle(){
+            board = Array.from({length:N}, ()=>Array(N).fill(EMPTY));
+            TREES = [];
+            ROW_TARGET.fill(0); COL_TARGET.fill(0);
+            const tents=[];
+            function tentKey(r,c){ return r+","+c; }
+            const tentSet=new Set();
+            function canPlaceTent(r,c){
+                if (!inBounds(r,c)) return false;
+                if (tentSet.has(tentKey(r,c))) return false;
+                // non-touching
+                for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++){
+                    if (dr===0&&dc===0) continue; const nr=r+dr, nc=c+dc; if(!inBounds(nr,nc)) continue; if (tentSet.has(tentKey(nr,nc))) return false;
+                }
+                return true;
+            }
+            // Place a fixed pattern of tents for stability
+            const planned = [
+                [0,3],[1,0],[1,5],[2,2],[2,7],[3,6],[4,4],[5,1],[5,5],[6,7],[7,2]
+            ];
+            for (const [r,c] of planned){ if (canPlaceTent(r,c)) { tentSet.add(tentKey(r,c)); tents.push([r,c]); } }
+            // Place one tree adjacent (orthogonal) to each tent, avoiding overlap
+            const treeSet=new Set();
+            const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+            for (const [tr,tc] of tents){
+                let placed=false;
+                for (const [dr,dc] of dirs){ const r=tr+dr, c=tc+dc; const k=r+","+c; if(inBounds(r,c) && !treeSet.has(k) && !tentSet.has(k)){ treeSet.add(k); TREES.push([r,c]); placed=true; break; } }
+                if (!placed){
+                    // fallback: pick first in-bounds even if adjacent to other trees
+                    for (const [dr,dc] of dirs){ const r=tr+dr, c=tc+dc; const k=r+","+c; if(inBounds(r,c) && !tentSet.has(k)){ treeSet.add(k); TREES.push([r,c]); placed=true; break; } }
+                }
+            }
+            // Derive quotas
+            for (const [r,c] of tents){ ROW_TARGET[r]++; COL_TARGET[c]++; }
+            // Render trees on board
+            for (const [r,c] of TREES){ board[r][c]=TREE; }
+        }
+
+
+        function tentsTouching(){
+            let bad=false;
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (board[r][c]===TENT){
+                for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++){
+                    if (dr===0&&dc===0) continue; const nr=r+dr, nc=c+dc;
+                    if (inBounds(nr,nc) && board[nr][nc]===TENT){ bad=true; markInvalidIdx(idx(r,c)); markInvalidIdx(idx(nr,nc)); }
+                }
+            }
+            return bad;
+        }
+
+        function tentHasTree(r,c){
+            const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+            for (const [dr,dc] of dirs){ const nr=r+dr, nc=c+dc; if(inBounds(nr,nc) && board[nr][nc]===TREE) return true; }
+            return false;
+        }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok=true;
+            // tents cannot touch (even diagonally)
+            if (tentsTouching()) ok=false;
+            // each tent must be next to a tree
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if(board[r][c]===TENT){ if(!tentHasTree(r,c)){ ok=false; markInvalidIdx(idx(r,c)); } }
+            // row/col counts must not exceed targets in live, equal on final
+            const rowCount=new Array(N).fill(0), colCount=new Array(N).fill(0);
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if(board[r][c]===TENT){ rowCount[r]++; colCount[c]++; }
+            for (let r=0;r<N;r++){ if (rowCount[r] > ROW_TARGET[r]){ ok=false; for(let c=0;c<N;c++) if(board[r][c]===TENT) markInvalidIdx(idx(r,c)); } }
+            for (let c=0;c<N;c++){ if (colCount[c] > COL_TARGET[c]){ ok=false; for(let r=0;r<N;r++) if(board[r][c]===TENT) markInvalidIdx(idx(r,c)); } }
+            if (!live){
+                for (let r=0;r<N;r++) if (rowCount[r] !== ROW_TARGET[r]) ok=false;
+                for (let c=0;c<N;c++) if (colCount[c] !== COL_TARGET[c]) ok=false;
+            }
+            return ok;
+        }
+
+        function isComplete(){
+            // Complete when row and col counts match targets (numbers placed can be mixture of grass/tent)
+            const rowCount=new Array(N).fill(0), colCount=new Array(N).fill(0);
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if(board[r][c]===TENT){ rowCount[r]++; colCount[c]++; }
+            for (let r=0;r<N;r++) if (rowCount[r] !== ROW_TARGET[r]) return false;
+            for (let c=0;c<N;c++) if (colCount[c] !== COL_TARGET[c]) return false;
+            return true;
+        }
+
+        function checkWin(){
+            if (!isComplete()){ showModal('Match the tent counts per row and column.'); return; }
+            if (validate(false)){ showModal('Camp set up perfectly!'); setTimeout(onWin, 400); }
+            else { showModal('Conflicts remain. Tents must touch a tree and cannot touch each other.'); }
+        }
+        function reset(){ generatePuzzle(); render(); clearInvalid(); }
+
+        // Lightweight backtracking solver (no UI changes). Call solve() from DevTools to compute tent coordinates.
+        function solve(){
+            // Build candidate cells per tree
+            const treeCands = TREES.map(([tr,tc])=>{
+                const cands=[]; const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+                for (const [dr,dc] of dirs){ const r=tr+dr, c=tc+dc; if(inBounds(r,c) && board[r][c]!==TREE) cands.push([r,c]); }
+                return {tree:[tr,tc], cands};
+            });
+            const tentSet = new Set(); // key "r,c" for placed tents
+            const rowCount=new Array(N).fill(0), colCount=new Array(N).fill(0);
+
+            function key(r,c){ return r+","+c; }
+            function canPlace(r,c){
+                if (board[r][c]===TREE) return false;
+                if (tentSet.has(key(r,c))) return false;
+                // non-touching tents
+                for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++){
+                    const nr=r+dr, nc=c+dc; if(dr===0&&dc===0) continue; if(!inBounds(nr,nc)) continue; if(tentSet.has(key(nr,nc))) return false;
+                }
+                // quotas
+                if (rowCount[r] + 1 > ROW_TARGET[r]) return false; if (colCount[c] + 1 > COL_TARGET[c]) return false;
+                // adjacency to a tree
+                const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; let ok=false; for(const [dr,dc] of dirs){ const nr=r+dr, nc=c+dc; if(inBounds(nr,nc) && board[nr][nc]===TREE){ ok=true; break; } }
+                return ok;
+            }
+            function place(r,c){ tentSet.add(key(r,c)); rowCount[r]++; colCount[c]++; }
+            function remove(r,c){ tentSet.delete(key(r,c)); rowCount[r]--; colCount[c]--; }
+
+            // Order trees by fewest candidates to reduce branching
+            treeCands.sort((a,b)=>a.cands.length-b.cands.length);
+
+            function backtrack(i){
+                if (i===treeCands.length){
+                    // Check quotas satisfied
+                    for (let r=0;r<N;r++) if(rowCount[r]!==ROW_TARGET[r]) return false;
+                    for (let c=0;c<N;c++) if(colCount[c]!==COL_TARGET[c]) return false;
+                    return true;
+                }
+                const {cands} = treeCands[i];
+                // Try each candidate; also allow that a tree may share a tent already adjacent
+                // Prefer candidates that help tight quotas
+                const ordered = cands.slice().sort((a,b)=>{
+                    const ta = (ROW_TARGET[a[0]]-rowCount[a[0]]) + (COL_TARGET[a[1]]-colCount[a[1]]);
+                    const tb = (ROW_TARGET[b[0]]-rowCount[b[0]]) + (COL_TARGET[b[1]]-colCount[b[1]]);
+                    return ta - tb;
+                });
+                for (const [r,c] of ordered){
+                    if (!canPlace(r,c)) continue;
+                    place(r,c);
+                    if (backtrack(i+1)) return true;
+                    remove(r,c);
+                }
+                // If no candidate placed, fail
+                return false;
+            }
+
+            const ok = backtrack(0);
+            if (!ok){ console.warn('No solution found for current puzzle.'); return []; }
+            const res=[]; tentSet.forEach(k=>{ const [r,c]=k.split(',').map(Number); res.push([r,c]); });
+            res.sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+            console.log('Tents solution (row, col 0-based):', res);
+            return res;
+        }
+
+        generatePuzzle();
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
+    }
+
+    // 17) Network (Day 17)
+    function networkGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 9; // size 9x9
+        // Each tile type is a set of open directions: U,R,D,L using bitmask 1,2,4,8
+        const U=1,R=2,D=4,L=8;
+        // Hardcoded board from BrainBashers (image codes net1..net9, neta..nete)
+        const PUZ_CODES = [
+            ['net6','net1','net6','net1','net1','net5','neta','net7','net1'],
+            ['net7','nete','net3','net3','net2','net4','net7','net7','net8'],
+            ['net1','net9','netb','net7','net4','nete','net9','net9','net1'],
+            ['net4','net3','netd','netb','netd','net3','net6','nete','net6'],
+            ['netc','netc','neta','neta','net3','net5','nete','net1','neta'],
+            ['net6','net5','net6','net3','net7','net9','net3','nete','net5'],
+            ['net6','net1','net4','net7','netb','nete','net8','neta','neta'],
+            ['net2','neta','neta','net6','neta','net4','net8','net7','neta'],
+            ['net2','net5','net5','net5','net7','net8','net8','net9','net4'],
+        ];
+        // Map codes to connector masks. Adjust if needed to match the site’s legend.
+        const CODE_MAP = {
+            // Mapping provided by user:
+            // net1 - right
+            net1: R,
+            // net2 - up
+            net2: U,
+            // net3 - UR (corner)
+            net3: U|R,
+            // net4 - left
+            net4: L,
+            // net5 - horizontal (L|R)
+            net5: L|R,
+            // net6 - UL (corner)
+            net6: U|L,
+            // net7 - ULR (tee missing down)
+            net7: U|L|R,
+            // net8 - down
+            net8: D,
+            // net9 - DR (corner)
+            net9: D|R,
+            // neta - vertical (U|D)
+            neta: U|D,
+            // netb - URD (tee missing left)
+            netb: U|R|D,
+            // netc - LD (corner)
+            netc: L|D,
+            // netd - LDR (tee missing up)
+            netd: L|D|R,
+            // nete - LUD (tee missing right)
+            nete: L|U|D,
+        };
+        const PUZ = PUZ_CODES.map(row => row.map(code => CODE_MAP[code]||0));
+
+        // Rotation state per tile (0..3); fixed terminals can be marked in FIX
+        let rot = Array.from({length:N}, ()=>Array(N).fill(0));
+        const FIX = Array.from({length:N}, ()=>Array(N).fill(false));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'nw-wrapper';
+        wrap.innerHTML = `
+            <h3>Network</h3>
+            <div class="nw-container">
+              <aside class="nw-sidebar">
+                <div class="nw-info">Rotate tiles to connect all wires into one continuous network. No open ends at the grid edges. All adjacent connectors must match.</div>
+                <div class="nw-controls">
+                    <button class="comic-btn-small" id="nw-check">Check</button>
+                    <button class="comic-btn-small" id="nw-reset">Reset</button>
+                    <button class="comic-btn-small" id="nw-help">How to play</button>
+                </div>
+              </aside>
+              <div class="nw-board" id="nw-board" style="grid-template-columns: repeat(${N}, 36px); grid-template-rows: repeat(${N}, 36px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#nw-board');
+        const checkBtn = wrap.querySelector('#nw-check');
+        const resetBtn = wrap.querySelector('#nw-reset');
+        const helpBtn = wrap.querySelector('#nw-help');
+        
+
+        function showHelp(){
+            showModal(`Goal: Make a single continuous network.\nRules:\n- Rotate tiles; connectors must match between neighbors.\n- No open connectors at the outer border.\nControls:\n- Click to rotate 90°. Fixed tiles can’t rotate.`);
+        }
+
+        function has(dirMask, dir){ return (dirMask & dir) !== 0; }
+        function rotateMask(m, times){ times%=4; while(times--) m = ((m<<1)&15) | ((m>>3)&1); return m; }
+
+        function tileMask(r,c){ return rotateMask(PUZ[r][c], rot[r][c]); }
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalid(r,c){ const idx=r*N+c; const el=boardEl.children[idx]; if(el) el.classList.add('invalid'); }
+
+        function render(){
+            boardEl.innerHTML = '';
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const cell=document.createElement('div');
+                    cell.className='nw-cell'+(FIX[r][c]?' fixed':'');
+                    const m = tileMask(r,c);
+                    const center=document.createElement('div'); center.className='center'; cell.appendChild(center);
+                    if (has(m,U)){ const seg=document.createElement('div'); seg.className='seg up'; cell.appendChild(seg); }
+                    if (has(m,R)){ const seg=document.createElement('div'); seg.className='seg right'; cell.appendChild(seg); }
+                    if (has(m,D)){ const seg=document.createElement('div'); seg.className='seg down'; cell.appendChild(seg); }
+                    if (has(m,L)){ const seg=document.createElement('div'); seg.className='seg left'; cell.appendChild(seg); }
+                    
+                    if (!FIX[r][c]){
+                        cell.addEventListener('click', ()=>{ rot[r][c]=(rot[r][c]+1)%4; render(); });
+                    }
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok=true;
+            // Check all adjacencies match
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const m=tileMask(r,c);
+                    // Up neighbor
+                    if (r>0){ const mu=tileMask(r-1,c); if (has(m,U)!==has(mu,D)){ ok=false; markInvalid(r,c); markInvalid(r-1,c); } }
+                    else if (has(m,U)){ ok=false; markInvalid(r,c); }
+                    // Down
+                    if (r<N-1){ const md=tileMask(r+1,c); if (has(m,D)!==has(md,U)){ ok=false; markInvalid(r,c); markInvalid(r+1,c); } }
+                    else if (has(m,D)){ ok=false; markInvalid(r,c); }
+                    // Left
+                    if (c>0){ const ml=tileMask(r,c-1); if (has(m,L)!==has(ml,R)){ ok=false; markInvalid(r,c); markInvalid(r,c-1); } }
+                    else if (has(m,L)){ ok=false; markInvalid(r,c); }
+                    // Right
+                    if (c<N-1){ const mr=tileMask(r,c+1); if (has(m,R)!==has(mr,L)){ ok=false; markInvalid(r,c); markInvalid(r,c+1); } }
+                    else if (has(m,R)){ ok=false; markInvalid(r,c); }
+                }
+            }
+            // Optional: single connected component (ignore empty tiles)
+            function isConnector(m){ return m!==0; }
+            const visited=new Set();
+            function k(r,c){ return r+","+c; }
+            function dfs(r,c){ const mk=tileMask(r,c); visited.add(k(r,c)); const dirs=[[U,-1,0,D],[D,1,0,U],[L,0,-1,R],[R,0,1,L]]; for(const [d,dr,dc,opp] of dirs){ const nr=r+dr,nc=c+dc; if(nr<0||nr>=N||nc<0||nc>=N) continue; const m2=tileMask(nr,nc); if(has(mk,d)&&has(m2,opp)&&!visited.has(k(nr,nc))) dfs(nr,nc); }
+            }
+            // Find first non-empty
+            let sr=-1, sc=-1; for(let r=0;r<N;r++){ for(let c=0;c<N;c++){ if(isConnector(tileMask(r,c))){ sr=r; sc=c; break; } } if(sr!==-1) break; }
+            if (sr!==-1){ dfs(sr,sc); for(let r=0;r<N;r++) for(let c=0;c<N;c++){ if(isConnector(tileMask(r,c)) && !visited.has(k(r,c))){ ok=false; markInvalid(r,c); } } }
+
+            return ok;
+        }
+
+        function isComplete(){ return validate(false); }
+        function checkWin(){ if (isComplete()){ showModal('Network complete!'); setTimeout(onWin, 400); } else { showModal('Connections mismatch or open ends.'); } }
+        function reset(){ rot = Array.from({length:N}, ()=>Array(N).fill(0)); render(); clearInvalid(); }
+
+        // Quick solvability check via backtracking respecting local adjacencies and borders; ensures a single connected component at the end.
+        function isSolvable(){
+            const rotWork = Array.from({length:N}, ()=>Array(N).fill(0));
+            function maskAt(r,c){ return rotateMask(PUZ[r][c], rotWork[r][c]); }
+            function bordersOk(r,c,m){
+                if (r===0 && has(m,U)) return false;
+                if (r===N-1 && has(m,D)) return false;
+                if (c===0 && has(m,L)) return false;
+                if (c===N-1 && has(m,R)) return false;
+                return true;
+            }
+            function localOk(r,c){
+                const m=maskAt(r,c);
+                if (!bordersOk(r,c,m)) return false;
+                if (r>0){ const mu=maskAt(r-1,c); if (has(m,U)!==has(mu,D)) return false; }
+                if (c>0){ const ml=maskAt(r,c-1); if (has(m,L)!==has(ml,R)) return false; }
+                return true;
+            }
+            function backtrack(idx){
+                if (idx===N*N){
+                    // single component check
+                    const visited=new Set();
+                    function k(r,c){ return r+","+c; }
+                    function isConnector(m){ return m!==0; }
+                    function dfs(r,c){ const mk=maskAt(r,c); visited.add(k(r,c)); const dirsArr=[[U,-1,0,D],[D,1,0,U],[L,0,-1,R],[R,0,1,L]]; for(const [d,dr,dc,opp] of dirsArr){ const nr=r+dr,nc=c+dc; if(nr<0||nr>=N||nc<0||nc>=N) continue; const m2=maskAt(nr,nc); if(has(mk,d)&&has(m2,opp)&&!visited.has(k(nr,nc))) dfs(nr,nc); }
+                    }
+                    let sr=-1, sc=-1; for(let r=0;r<N;r++){ for(let c=0;c<N;c++){ if(isConnector(maskAt(r,c))){ sr=r; sc=c; break; } } if(sr!==-1) break; }
+                    if (sr!==-1){ dfs(sr,sc); for(let r=0;r<N;r++) for(let c=0;c<N;c++){ if(isConnector(maskAt(r,c)) && !visited.has(k(r,c))) return false; } }
+                    return true;
+                }
+                const r = Math.floor(idx/N), c = idx%N;
+                // try rotations 0..3
+                for (let t=0;t<4;t++){
+                    rotWork[r][c]=t;
+                    if (localOk(r,c)){
+                        if (backtrack(idx+1)) return true;
+                    }
+                }
+                rotWork[r][c]=0;
+                return false;
+            }
+            try { return backtrack(0); } catch(e){ return false; }
+        }
+
+        // On reset, quickly warn if the current puzzle spec appears unsolvable
+        function warnIfUnsolvable(){ setTimeout(()=>{ if (!isSolvable()) console.warn('Network puzzle may be unsolvable with current specification.'); }, 0); }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
+        warnIfUnsolvable();
+    }
+
+    // 18) Neighbours (Day 18)
+    function neighborsGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 6; // 6x6 Latin grid
+        // Use a known Latin square solution and derive symbols from it to guarantee solvability.
+        const SOL = [
+            [1,4,6,3,5,2],
+            [2,3,5,4,1,6],
+            [6,5,1,2,4,3],
+            [3,6,4,1,2,5],
+            [5,1,2,6,3,4],
+            [4,2,3,5,6,1],
+        ];
+        // Derive symbols: true where neighbors differ by 1, false otherwise
+        const horizontalSymbols = Array.from({length:N}, ()=>Array(N-1).fill(false));
+        const verticalSymbols = Array.from({length:N-1}, ()=>Array(N).fill(false));
+        for (let r=0;r<N;r++){
+            for (let c=0;c<N-1;c++){
+                horizontalSymbols[r][c] = Math.abs(SOL[r][c]-SOL[r][c+1])===1;
+            }
+        }
+        for (let r=0;r<N-1;r++){
+            for (let c=0;c<N;c++){
+                verticalSymbols[r][c] = Math.abs(SOL[r][c]-SOL[r+1][c])===1;
+            }
+        }
+
+        // Optional givens as [r,c,value]
+        const GIVENS = [
+            [0,0,SOL[0][0]],
+            [0,3,SOL[0][3]],
+            [1,5,SOL[1][5]],
+            [2,2,SOL[2][2]],
+            [3,0,SOL[3][0]],
+            [3,4,SOL[3][4]],
+            [4,1,SOL[4][1]],
+            [5,5,SOL[5][5]],
+        ];
+
+        let board = Array.from({length:N}, ()=>Array(N).fill(0));
+        for (const [r,c,v] of GIVENS) board[r][c]=v;
+        let cellEls = Array.from({length:N}, ()=>Array(N).fill(null));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'nb-wrapper';
+        wrap.innerHTML = `
+            <h3>Neighbours</h3>
+            <div class="nb-container">
+              <aside class="nb-sidebar">
+                <div class="nb-info">Complete the grid so each row and column contains 1–${N} exactly once. If there is a symbol between two squares, their numbers must be neighbours (differ by 1). If there is NOT a symbol, their numbers must NOT be neighbours.</div>
+                <div class="nb-controls">
+                    <button class="comic-btn-small" id="nb-check">Check</button>
+                    <button class="comic-btn-small" id="nb-reset">Reset</button>
+                    <button class="comic-btn-small" id="nb-help">How to play</button>
+                </div>
+              </aside>
+              <div class="nb-board" id="nb-board" style="grid-template-columns: repeat(${N}, 34px); grid-template-rows: repeat(${N}, 34px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#nb-board');
+        const checkBtn = wrap.querySelector('#nb-check');
+        const resetBtn = wrap.querySelector('#nb-reset');
+        const helpBtn = wrap.querySelector('#nb-help');
+
+        function showHelp(){
+            showModal(`Rules:\n- Fill 1–${N} once per row and column.\n- A symbol between two squares means their numbers differ by 1.\n- No symbol means their numbers do NOT differ by 1.\nControls:\n- Click a non-given cell to cycle its value.`);
+        }
+        function isGiven(r,c){ return GIVENS.some(g=>g[0]===r && g[1]===c); }
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalid(r,c){ const idx=r*N+c; const el=boardEl.children[idx]; if(el) el.classList.add('invalid'); }
+
+        function render(){
+            boardEl.innerHTML = '';
+            cellEls = Array.from({length:N}, ()=>Array(N).fill(null));
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const cell=document.createElement('div');
+                    cell.className='nb-cell'+(isGiven(r,c)?' given':'');
+                    cell.textContent = board[r][c]||'';
+                    // draw symbol markers on right and bottom edges
+                    cell.style.position='relative';
+                    if (c<N-1 && horizontalSymbols[r][c]){
+                        const sym=document.createElement('div');
+                        sym.style.position='absolute'; sym.style.top='50%'; sym.style.right='-4px'; sym.style.width='8px'; sym.style.height='2px'; sym.style.background='#9cf'; sym.style.transform='translateY(-50%)';
+                        cell.appendChild(sym);
+                    }
+                    if (r<N-1 && verticalSymbols[r][c]){
+                        const sym=document.createElement('div');
+                        sym.style.position='absolute'; sym.style.left='50%'; sym.style.bottom='-4px'; sym.style.width='2px'; sym.style.height='8px'; sym.style.background='#9cf'; sym.style.transform='translateX(-50%)';
+                        cell.appendChild(sym);
+                    }
+                    if (!isGiven(r,c)){
+                        cell.addEventListener('click', ()=>{
+                            const v = board[r][c]||0;
+                            board[r][c] = v===N ? 0 : v+1; // cycle 0→1→…→N→0
+                            render();
+                        });
+                    }
+                    boardEl.appendChild(cell);
+                    cellEls[r][c]=cell;
+                }
+            }
+        }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok=true;
+            // Latin constraints
+            for (let r=0;r<N;r++){
+                const seen=new Set();
+                for (let c=0;c<N;c++){
+                    const v=board[r][c];
+                    if (v===0){ ok=false; markInvalid(r,c); }
+                    else if (seen.has(v)){ ok=false; markInvalid(r,c); }
+                    else seen.add(v);
+                }
+            }
+            for (let c=0;c<N;c++){
+                const seen=new Set();
+                for (let r=0;r<N;r++){
+                    const v=board[r][c];
+                    if (v===0){ ok=false; markInvalid(r,c); }
+                    else if (seen.has(v)){ ok=false; markInvalid(r,c); }
+                    else seen.add(v);
+                }
+            }
+            // Neighbour rules
+            function isNeighbor(a,b){ return a!==0 && b!==0 && Math.abs(a-b)===1; }
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N-1;c++){
+                    const a=board[r][c], b=board[r][c+1];
+                    const sym = horizontalSymbols[r][c];
+                    if (sym){ if (a!==0 && b!==0 && !isNeighbor(a,b)){ ok=false; markInvalid(r,c); markInvalid(r,c+1); } }
+                    else { if (a!==0 && b!==0 && isNeighbor(a,b)){ ok=false; markInvalid(r,c); markInvalid(r,c+1); } }
+                }
+            }
+            for (let r=0;r<N-1;r++){
+                for (let c=0;c<N;c++){
+                    const a=board[r][c], b=board[r+1][c];
+                    const sym = verticalSymbols[r][c];
+                    if (sym){ if (a!==0 && b!==0 && !isNeighbor(a,b)){ ok=false; markInvalid(r,c); markInvalid(r+1,c); } }
+                    else { if (a!==0 && b!==0 && isNeighbor(a,b)){ ok=false; markInvalid(r,c); markInvalid(r+1,c); } }
+                }
+            }
+            return ok;
+        }
+
+        function isComplete(){ return validate(false); }
+        function checkWin(){ if (isComplete()){ showModal('All neighbours and Latin rules satisfied!'); setTimeout(onWin, 400); } else { showModal('Conflicts with Latin or neighbour rules.'); } }
+        function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(0)); for (const [r,c,v] of GIVENS) board[r][c]=v; render(); clearInvalid(); }
+
+        // Internal solver helpers (kept for dev use)
+        function neighborsOk(r,c,val){
+            // check horizontal neighbors
+            if (c>0){ const left=board[r][c-1]; const sym=horizontalSymbols[r][c-1]; if (left){ const diff=Math.abs(left-val)===1; if (sym && !diff) return false; if (!sym && diff) return false; } }
+            if (c<N-1){ const right=board[r][c+1]; const sym=horizontalSymbols[r][c]; if (right){ const diff=Math.abs(right-val)===1; if (sym && !diff) return false; if (!sym && diff) return false; } }
+            // vertical
+            if (r>0){ const up=board[r-1][c]; const sym=verticalSymbols[r-1][c]; if (up){ const diff=Math.abs(up-val)===1; if (sym && !diff) return false; if (!sym && diff) return false; } }
+            if (r<N-1){ const down=board[r+1][c]; const sym=verticalSymbols[r][c]; if (down){ const diff=Math.abs(down-val)===1; if (sym && !diff) return false; if (!sym && diff) return false; } }
+            return true;
+        }
+        function solve(){
+            const rowUsed = Array.from({length:N}, ()=>Array(N+1).fill(false));
+            const colUsed = Array.from({length:N}, ()=>Array(N+1).fill(false));
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++){ const v=board[r][c]; if (v){ rowUsed[r][v]=true; colUsed[c][v]=true; } }
+            const cells=[];
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (!board[r][c]) cells.push([r,c]);
+            function backtrack(i){
+                if (i===cells.length) return true;
+                const [r,c]=cells[i];
+                for (let v=1; v<=N; v++){
+                    if (rowUsed[r][v]||colUsed[c][v]) continue;
+                    if (!neighborsOk(r,c,v)) continue;
+                    board[r][c]=v; rowUsed[r][v]=true; colUsed[c][v]=true;
+                    if (backtrack(i+1)) return true;
+                    board[r][c]=0; rowUsed[r][v]=false; colUsed[c][v]=false;
+                }
+                return false;
+            }
+            const ok = backtrack(0);
+            if (!ok) showModal('No solution found for this symbol layout.');
+            render();
+            return ok;
+        }
 
         render();
         helpBtn.addEventListener('click', showHelp);
