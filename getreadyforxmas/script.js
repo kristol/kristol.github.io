@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         19: aquariumGame,
         20: slitherlinkGame,
         21: binairoGame,
+        22: liquidSortGame,
+        23: sokobanGame,
         24: sudokuGame,
         // more days can be added here
     };
@@ -194,11 +196,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showModal(message) {
         modalText.innerText = message;
+        // Hide the OK button; user will close via the top-right X
+        if (modalBtn) { modalBtn.style.display = 'none'; }
         modal.classList.remove('hidden');
     }
 
     function closeModal() {
         modal.classList.add('hidden');
+        // Reset any temporary button offsets used by gift messages
+        const btn = document.getElementById('modal-action-btn');
+        if (btn) { btn.style.transform=''; btn.style.marginTop=''; }
     }
 
     function openGame(day) {
@@ -247,24 +254,214 @@ document.addEventListener('DOMContentLoaded', () => {
         gameTitle.innerText = 'Surprise Gift';
         setRandomIcon();
         gameContent.innerHTML = '';
+        // Container
         const wrap = document.createElement('div');
         wrap.style.textAlign = 'center';
+        wrap.style.position = 'relative';
+
+        // Headline
         const h = document.createElement('h3');
         h.innerText = 'Merry Christmas Amo! 🎁';
         const p = document.createElement('p');
-        p.innerText = 'You conquered all 24 challenges. Here is one of your gifts!';
-        const btn = document.createElement('a');
-        btn.className = 'comic-btn';
-        btn.style.display = 'inline-block';
-        btn.style.marginTop = '16px';
-        btn.textContent = 'Open Gift';
-        // Open the final gift URL directly when clicked
-        btn.href = 'https://www.budapestpark.hu/events/mac-demarco-20260623';
-        btn.target = '_blank';
-        btn.rel = 'noopener noreferrer';
+        p.innerText = 'You conquered all 24 challenges. One tiny, final step… You have to tap me 542 times (why 542? Because I thats the amount of days we have been together!) to unlock your special gift. Ready? Go!';
+
+        // Confetti canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 800; canvas.height = 400;
+        canvas.style.width = '100%';
+        canvas.style.maxWidth = '900px';
+        canvas.style.height = '200px';
+        canvas.style.display = 'block';
+        canvas.style.margin = '12px auto';
+        const ctx = canvas.getContext('2d');
+
+        // Spawn confetti pieces
+        const colors = ['#ff6b6b','#ffd43b','#4dabf7','#51cf66','#845ef7','#ffa94d'];
+        const pieces = [];
+        for (let i=0;i<180;i++){
+            pieces.push({
+                x: Math.random()*canvas.width,
+                y: -Math.random()*canvas.height*0.5,
+                r: 2 + Math.random()*4,
+                c: colors[Math.floor(Math.random()*colors.length)],
+                vy: 1 + Math.random()*2.5,
+                vx: (Math.random()-0.5)*1.2,
+                rot: Math.random()*Math.PI,
+                vr: (Math.random()-0.5)*0.08
+            });
+        }
+        function confettiStep(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for (const p of pieces){
+                p.y += p.vy; p.x += p.vx; p.rot += p.vr;
+                if (p.y>canvas.height+10){ p.y=-10; p.x=Math.random()*canvas.width; }
+                ctx.save();
+                ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+                ctx.fillStyle=p.c;
+                ctx.fillRect(-p.r, -p.r, p.r*2, p.r*2);
+                ctx.restore();
+            }
+            requestAnimationFrame(confettiStep);
+        }
+        // Start confetti
+        setTimeout(confettiStep, 50);
+
+        // Extra snowflakes
+        const snowLayer = document.createElement('div');
+        snowLayer.style.pointerEvents = 'none';
+        snowLayer.style.position = 'absolute';
+        snowLayer.style.left = 0;
+        snowLayer.style.right = 0;
+        snowLayer.style.top = 0;
+        snowLayer.style.bottom = 0;
+        for (let i=0;i<40;i++){
+            const s = document.createElement('div');
+            s.style.position='absolute';
+            s.style.left = Math.random()*100+'%';
+            s.style.top = (-10 - Math.random()*40)+'px';
+            s.style.width = s.style.height = (4 + Math.random()*6)+'px';
+            s.style.borderRadius='50%';
+            s.style.background='#fff';
+            s.style.opacity = 0.9;
+            const dur = 3 + Math.random()*4;
+            s.style.animation = `gift-snow ${dur}s linear ${Math.random()}s infinite`;
+            snowLayer.appendChild(s);
+        }
+
+        // 542-tap gate
+        const tapWrap = document.createElement('div');
+        tapWrap.style.marginTop = '12px';
+        const info = document.createElement('p');
+        info.style.margin = '6px 0 10px';
+        info.textContent = 'Tap the button 542 times to unlock your gift!';
+        const tapBtn = document.createElement('button');
+        tapBtn.className = 'comic-btn';
+        tapBtn.style.display = 'inline-block';
+        tapBtn.style.marginTop = '8px';
+        tapBtn.textContent = 'Tap me ❤';
+        // Prevent double-tap zoom on iPad/iOS
+        tapBtn.style.touchAction = 'manipulation';
+
+        const counter = document.createElement('div');
+        counter.style.fontWeight='800';
+        counter.style.marginTop='8px';
+        // Persisted progress
+        const TAP_KEY='xmas_gift_taps';
+        const UNLOCK_KEY='xmas_gift_unlocked';
+        const CHALLENGE_KEY='xmas_gift_challenge_solved';
+        let taps=Number(localStorage.getItem(TAP_KEY))||0; let msgIndex=0;
+        let challengeShown=false; let challengeSolved=(localStorage.getItem(CHALLENGE_KEY)==='1');
+        counter.textContent = `${taps} / 542`;
+
+        const messages = [
+            'This is the last challenge!',
+            'You can do it!',
+            'Easiest challenge of the month!',
+            'You are so close!',
+            'Only a handful more!',
+            'VAI VAI VAIIIIIII ALISEA!', 
+            'Keep going, fartypants!',
+        ];
+        // moved above to use persisted values
+        function updateMessage(){
+            const left = 542 - taps;
+            if (taps % 50 === 0 && taps>0){
+                const m = messages[msgIndex % messages.length];
+                showModal(`${m}\nIt\'s only ${left} clicks left!`);
+                // Nudge the OK button so it won't sit over the tappable area
+                try {
+                    const btn = document.getElementById('modal-action-btn');
+                    if (btn) {
+                        const xShift = (Math.random() * 40 - 20); // -20..20px horizontally
+                        const yShift = 16 + Math.random() * 20;   // 16..36px downwards
+                        btn.style.marginTop = Math.round(yShift) + 'px';
+                        btn.style.transform = `translate(${Math.round(xShift)}px, 0)`;
+                    }
+                } catch(_){}
+                msgIndex++;
+            }
+        }
+        let lastTouchTime=0;
+        tapBtn.addEventListener('touchend', (e)=>{
+            const now=Date.now();
+            if (now-lastTouchTime<350){ e.preventDefault(); }
+            lastTouchTime=now;
+        }, {passive:false});
+        // Final prank: hard math challenge before the last tap
+        const challenge = document.createElement('div');
+        challenge.style.display='none';
+        challenge.style.marginTop='12px';
+        challenge.style.padding='12px';
+        challenge.style.border='2px solid #c3d7e8';
+        challenge.style.borderRadius='8px';
+        challenge.style.background='#f7fbff';
+        const chTitle=document.createElement('h4'); chTitle.textContent='Final Mini-Challenge';
+        const chDesc=document.createElement('p'); chDesc.textContent='Solve this to unlock the very last click:';
+        const expr=document.createElement('p'); expr.style.fontWeight='800'; expr.textContent='25 × 12 + (180 ÷ 6) − 5^2 + Σ(i, i=1..10)';
+        const input=document.createElement('input'); input.type='tel'; input.placeholder='Enter the final value'; input.style.padding='8px'; input.style.border='1px solid #b0bec5'; input.style.borderRadius='6px'; input.style.fontWeight='800'; input.style.textAlign='center'; input.style.width='160px';
+        const submit=document.createElement('button'); submit.className='comic-btn-small'; submit.textContent='Check Answer'; submit.style.marginLeft='8px';
+        const feedback=document.createElement('div'); feedback.style.marginTop='8px'; feedback.style.fontWeight='700';
+        const correctValue = (25*12) + (180/6) - Math.pow(5,2) + (10*(10+1)/2); // 360
+        submit.addEventListener('click', ()=>{
+            const val = parseInt((input.value||'').trim(),10);
+            if (val===correctValue){
+                feedback.textContent='Correct! You may finish the last tap.'; feedback.style.color='#2e7d32';
+                challengeSolved=true; localStorage.setItem(CHALLENGE_KEY,'1');
+                challenge.style.display='none'; tapBtn.disabled=false; tapBtn.focus();
+            } else {
+                feedback.textContent='Not quite — try again ❤'; feedback.style.color='#c62828';
+            }
+        });
+        challenge.appendChild(chTitle); challenge.appendChild(chDesc); challenge.appendChild(expr); challenge.appendChild(input); challenge.appendChild(submit); challenge.appendChild(feedback);
+
+        tapBtn.addEventListener('click', ()=>{
+            // If we reached the pre-final state and challenge not solved, show it instead of counting
+            if (!challengeShown && !challengeSolved && taps>=541){
+                challengeShown=true; tapBtn.disabled=true; challenge.style.display='block';
+                return;
+            }
+            taps++;
+            counter.textContent = `${taps} / 542`;
+            localStorage.setItem(TAP_KEY,String(taps));
+            updateMessage();
+            if (taps>=542){
+                // Reveal gift link
+                tapBtn.disabled=true; tapBtn.textContent='Unlocked!';
+                localStorage.setItem(UNLOCK_KEY,'1');
+                const gift = document.createElement('a');
+                gift.className='comic-btn';
+                gift.style.display='inline-block';
+                gift.style.marginTop='12px';
+                gift.textContent='Open Gift';
+                gift.href='https://www.budapestpark.hu/events/mac-demarco-20260623';
+                gift.target='_blank'; gift.rel='noopener noreferrer';
+                tapWrap.appendChild(gift);
+            }
+        });
+
+        tapWrap.appendChild(info);
+        tapWrap.appendChild(tapBtn);
+        tapWrap.appendChild(counter);
+        tapWrap.appendChild(challenge);
+
+        // If previously unlocked, restore gift link immediately
+        if (localStorage.getItem(UNLOCK_KEY)==='1'){
+            tapBtn.disabled=true; tapBtn.textContent='Unlocked!';
+            const gift = document.createElement('a');
+            gift.className='comic-btn';
+            gift.style.display='inline-block';
+            gift.style.marginTop='12px';
+            gift.textContent='Open Gift';
+            gift.href='https://www.budapestpark.hu/events/mac-demarco-20260623';
+            gift.target='_blank'; gift.rel='noopener noreferrer';
+            tapWrap.appendChild(gift);
+        }
+
         wrap.appendChild(h);
         wrap.appendChild(p);
-        wrap.appendChild(btn);
+        wrap.appendChild(canvas);
+        wrap.appendChild(snowLayer);
+        wrap.appendChild(tapWrap);
         gameContent.appendChild(wrap);
     }
 
@@ -4263,7 +4460,7 @@ Tips:
         const wrap=document.createElement('div');
         wrap.className='sdk-wrapper';
         wrap.innerHTML=`
-            <h3>Sudoku (Hard)</h3>
+            <h3>Sudoku</h3>
             <div class="sdk-container">
               <aside class="sdk-sidebar">
                 <div class="sdk-info">Fill digits 1–9 so each row, column, and 3×3 box contains each number exactly once. Fixed clues cannot be changed.</div>
@@ -4393,6 +4590,286 @@ Tips:
                 if (k>='1'&&k<='9') { const n=parseInt(k,10); setCellVal(n); }
                 else if (k==='0' || k==='Backspace' || k==='Delete') { setCellVal(0); highlightSame(0); }
             }
+        });
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', check);
+    }
+
+    // 22) Liquid Sort (Day 22) - Intermediate
+    function liquidSortGame(root, onWin){
+        root.innerHTML='';
+        const BOTTLES = 10; // total bottles
+        const CAPACITY = 4; // layers per bottle
+        // Colors palette
+        // Highly distinct colors for clear differentiation
+        const COLORS = ['#d32f2f', '#1976d2', '#388e3c', '#fbc02d', '#7b1fa2', '#f57c00', '#455a64', '#c2185b']; // red, blue, green, yellow, purple, orange, slate, magenta
+        // Predefined intermediate layout: 8 filled bottles, 2 empty
+        // Color indices map to COLORS above (0..7)
+        // Solvable preset (tested): arrangement allows solution with logical pours
+        // Top -> bottom order per bottle
+        const PRESET = [
+            [0,1,2,3],
+            [4,5,6,7],
+            [0,4,1,5],
+            [2,6,3,7],
+            [0,2,4,6],
+            [1,3,5,7],
+            [0,5,2,7],
+            [1,4,3,6],
+            [],
+            [],
+        ];
+        let state = PRESET.map(b=>b.slice());
+
+        const wrap=document.createElement('div');
+        wrap.className='ls-wrapper';
+        wrap.innerHTML=`
+            <h3>Liquid Sort</h3>
+            <div class="ls-container">
+              <aside class="ls-sidebar">
+                <div class="ls-info">Sort bottles so each bottle contains a single color from top to bottom. You can pour a contiguous block of the same color from the top of one bottle into another if there is space and the top colors match or the target is empty.</div>
+                <div class="ls-controls">
+                  <button class="comic-btn-small" id="ls-check">Check</button>
+                  <button class="comic-btn-small" id="ls-reset">Reset</button>
+                  <button class="comic-btn-small" id="ls-help">How to play</button>
+                </div>
+              </aside>
+              <div class="ls-board" id="ls-board"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl=wrap.querySelector('#ls-board');
+        const checkBtn=wrap.querySelector('#ls-check');
+        const resetBtn=wrap.querySelector('#ls-reset');
+        const helpBtn=wrap.querySelector('#ls-help');
+
+        let selected=-1;
+
+        function showHelp(){
+            showModal('Tap a source bottle, then a target bottle to pour. You can only pour a top block of same-colored layers. The target must have space and either be empty or have the same top color.');
+        }
+
+        function render(){
+            boardEl.innerHTML='';
+            for (let b=0;b<BOTTLES;b++){
+                const bottle=document.createElement('div');
+                bottle.className='ls-bottle'+(selected===b?' selected':'');
+                // Render only existing layers and align to bottom to show empty headspace
+                const len = state[b].length;
+                for (let k=0;k<len;k++){
+                    const layer=document.createElement('div');
+                    const topIndex = len-1-k; // top, then next down
+                    const colorIdx = state[b][topIndex];
+                    layer.className='ls-layer';
+                    layer.style.background = COLORS[colorIdx];
+                    bottle.appendChild(layer);
+                }
+                bottle.addEventListener('click', ()=> handleBottleClick(b));
+                boardEl.appendChild(bottle);
+            }
+        }
+
+        function topBlock(b){
+            const s=state[b]; if (s.length===0) return {color:null,count:0};
+            const color=s[s.length-1];
+            let count=1; for (let i=s.length-2;i>=0 && s[i]===color;i--) count++;
+            return {color,count};
+        }
+        function canPour(from,to){
+            if (from===to) return false;
+            if (state[from].length===0) return false;
+            if (state[to].length>=CAPACITY) return false;
+            const {color} = topBlock(from);
+            if (color===null) return false;
+            if (state[to].length===0) return true; // empty target accepts one layer
+            const topTo = state[to][state[to].length-1];
+            return topTo===color; // only allow if matching top color
+        }
+        function pour(from,to){
+            // Move exactly one layer per action
+            if (!canPour(from,to)) return;
+            const one = state[from].pop();
+            state[to].push(one);
+        }
+        function handleBottleClick(b){
+            if (selected===-1){ selected=b; render(); return; }
+            if (selected===b){ selected=-1; render(); return; }
+            if (canPour(selected,b)){ pour(selected,b); selected=-1; render(); }
+            else { selected=b; render(); }
+        }
+
+        function isComplete(){
+            for (let b=0;b<BOTTLES;b++){
+                if (state[b].length===0) continue;
+                if (state[b].length!==CAPACITY) return false;
+                const first=state[b][0];
+                for (let i=1;i<CAPACITY;i++) if (state[b][i]!==first) return false;
+            }
+            return true;
+        }
+        function check(){ if (isComplete()){ showModal('All bottles sorted!'); setTimeout(onWin, 400); } else { showModal('Not yet sorted. Keep pouring!'); } }
+        function reset(){ state = PRESET.map(b=>b.slice()); selected=-1; render(); }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', check);
+    }
+
+    // 23) Sokoban Mini (Day 23)
+    function sokobanGame(root, onWin){
+        root.innerHTML='';
+        // Legend: '.' floor, '#' wall, 'B' box, 'T' target, 'P' player
+        // Extra-hard puzzle: more boxes/targets, choke points, many ways to deadlock
+        const MAP = [
+            '##############',
+            '#..#..T..#..#',
+            '#.B#..##..B.#',
+            '#..##..B..#.#',
+            '#..T..##..T.#',
+            '##.##..##..##',
+            '#..B..##..B.#',
+            '#..##..B..#.#',
+            '#..T..##..T.#',
+            '##.##..##..##',
+            '#..B..##..B.#',
+            '#.######..#.#',
+            '#..P....B..T#',
+            '##############',
+        ];
+        const R = MAP.length, C = MAP[0].length;
+        // Parse
+        let player=[0,0];
+        const walls=new Set();
+        const targets=new Set();
+        let boxes=[];
+        function key(r,c){ return r+','+c; }
+        for (let r=0;r<R;r++){
+            for (let c=0;c<C;c++){
+                const ch=MAP[r][c];
+                if (ch==='#') walls.add(key(r,c));
+                else if (ch==='T') targets.add(key(r,c));
+                else if (ch==='B') boxes.push([r,c]);
+                else if (ch==='P') player=[r,c];
+            }
+        }
+        function boxesSet(){ const s=new Set(); for (const [r,c] of boxes) s.add(key(r,c)); return s; }
+        let boxSet = boxesSet();
+
+        const wrap=document.createElement('div');
+        wrap.className='skb-wrapper';
+        wrap.innerHTML=`
+            <h3>Sokoban Mini</h3>
+            <div class="skb-container">
+              <aside class="skb-sidebar">
+                <div class="skb-info">Push all boxes onto target tiles. You can only push one box at a time, and only into empty floor. Use arrow keys or WASD.</div>
+                                <div class="skb-controls">
+                                    <button class="comic-btn-small" id="skb-check">Check</button>
+                                    <button class="comic-btn-small" id="skb-reset">Reset</button>
+                                    <button class="comic-btn-small" id="skb-help">How to play</button>
+                                </div>
+                                <div class="skb-dpad" id="skb-dpad">
+                                    <button aria-label="Up" data-dir="up">↑</button>
+                                    <div class="skb-middle">
+                                        <button aria-label="Left" data-dir="left">←</button>
+                                        <button aria-label="Right" data-dir="right">→</button>
+                                    </div>
+                                    <button aria-label="Down" data-dir="down">↓</button>
+                                </div>
+              </aside>
+              <div class="skb-board" id="skb-board" style="grid-template-columns: repeat(${C}, 28px); grid-template-rows: repeat(${R}, 28px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl=wrap.querySelector('#skb-board');
+        const checkBtn=wrap.querySelector('#skb-check');
+        const resetBtn=wrap.querySelector('#skb-reset');
+        const helpBtn=wrap.querySelector('#skb-help');
+        const dpad=wrap.querySelector('#skb-dpad');
+
+        function showHelp(){
+            showModal('Use arrow keys or WASD to move. When adjacent to a box, moving into it will push it if the space beyond is empty. Get all boxes onto targets to win.');
+        }
+        let facing = 'right';
+        function render(){
+            boardEl.innerHTML='';
+            for (let r=0;r<R;r++){
+                for (let c=0;c<C;c++){
+                    const el=document.createElement('div');
+                    el.className='skb-cell';
+                    const k=key(r,c);
+                    if (walls.has(k)) el.classList.add('wall');
+                    else el.classList.add('floor');
+                    if (targets.has(k)) el.classList.add('target');
+                    if (boxSet.has(k)) el.classList.add('box');
+                    if (player[0]===r && player[1]===c){
+                        el.classList.add('player');
+                        const icon=document.createElement('span');
+                        icon.className='player-icon'+(facing==='left'?' left':'');
+                        el.appendChild(icon);
+                    }
+                    boardEl.appendChild(el);
+                }
+            }
+        }
+        function isWin(){
+            // Win when all target tiles are covered by a box.
+            // This matches the user's goal-focused expectation even if extra boxes remain.
+            const occupied = boxesSet();
+            for (const t of targets){ if (!occupied.has(t)) return false; }
+            return true;
+        }
+        function check(){ if (isWin()){ showModal('All boxes on targets!'); setTimeout(onWin, 400); } else { showModal('Keep pushing—some boxes aren\'t on targets yet.'); } }
+        function reset(){ boxes=[]; walls.clear(); targets.clear(); boxSet=new Set();
+            for (let r=0;r<R;r++) for (let c=0;c<C;c++){
+                const ch=MAP[r][c];
+                if (ch==='#') walls.add(key(r,c)); else if (ch==='T') targets.add(key(r,c)); else if (ch==='B') boxes.push([r,c]); else if (ch==='P') player=[r,c];
+            }
+            boxSet=boxesSet(); render(); }
+
+        function tryMove(dr,dc){
+            const nr=player[0]+dr, nc=player[1]+dc;
+            const nk=key(nr,nc);
+            if (walls.has(nk)) return; // blocked
+            if (boxSet.has(nk)){
+                // attempt to push
+                const br=nr+dr, bc=nc+dc, bk=key(br,bc);
+                if (walls.has(bk) || boxSet.has(bk)) return; // cannot push into wall or box
+                // move box
+                for (let i=0;i<boxes.length;i++){
+                    if (boxes[i][0]===nr && boxes[i][1]===nc){ boxes[i]=[br,bc]; break; }
+                }
+                boxSet=boxesSet();
+                player=[nr,nc];
+            } else {
+                // step into floor/target
+                player=[nr,nc];
+            }
+            if (dc<0) facing='left'; else if (dc>0) facing='right';
+            render();
+            if (isWin()) { showModal('Solved!'); setTimeout(onWin, 400); }
+        }
+
+        window.addEventListener('keydown', (e)=>{
+            const k=e.key.toLowerCase();
+            if (k==='arrowup' || k==='w') tryMove(-1,0);
+            else if (k==='arrowdown' || k==='s') tryMove(1,0);
+            else if (k==='arrowleft' || k==='a') tryMove(0,-1);
+            else if (k==='arrowright' || k==='d') tryMove(0,1);
+        });
+
+        dpad.addEventListener('click', (e)=>{
+            const btn = e.target.closest('button'); if (!btn) return;
+            const dir = btn.dataset.dir;
+            if (dir==='up') tryMove(-1,0);
+            else if (dir==='down') tryMove(1,0);
+            else if (dir==='left') tryMove(0,-1);
+            else if (dir==='right') tryMove(0,1);
         });
 
         render();
