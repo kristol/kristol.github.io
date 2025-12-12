@@ -75,6 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
         16: tentsAndTreesGame,
         17: networkGame,
         18: neighborsGame,
+        19: aquariumGame,
+        20: slitherlinkGame,
+        21: binairoGame,
+        24: sudokuGame,
         // more days can be added here
     };
 
@@ -3754,5 +3758,646 @@ Tips:
             }
         });
         observer.observe(document.getElementById('game-overlay'), { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // 19) Aquarium (Day 19)
+    function aquariumGame(root, onWin) {
+        root.innerHTML = '';
+        const N = 6; // 6x6
+        const EMPTY = 0, WATER = 1, AIR = 2; // user states; AIR is just marked empty
+        // Hardcoded intermediate puzzle: regions (aquariums) labeled 0..K-1
+        // Each cell has a region id; water in a region must be bottom-anchored per column within that region.
+        // Regions from PNG (IDs per provided matrix)
+        const REG = [
+            [0,0,1,1,1,1],
+            [2,0,0,1,1,1],
+            [2,2,3,3,4,4],
+            [5,6,6,7,8,4],
+            [5,5,7,7,8,4
+                
+            ],
+            [5,8,8,8,8,8],
+        ];
+        // Row and column clues: number of water cells required
+        // Clues from PNG
+        const ROW = [2,5,4,5,5,1];
+        const COL = [5,5,4,4,1,3];
+
+        let board = Array.from({length:N}, ()=>Array(N).fill(EMPTY));
+        let cellEls = Array.from({length:N}, ()=>Array(N).fill(null));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'aq-wrapper';
+        wrap.innerHTML = `
+            <h3>Aquarium</h3>
+            <div class="aq-container">
+              <aside class="aq-sidebar">
+                <div class="aq-info">Fill water so each row and column matches its clue. Within each aquarium region, water settles to the bottom: no water cell may have empty below in the same region.</div>
+                <div class="aq-controls">
+                    <button class="comic-btn-small" id="aq-check">Check</button>
+                    <button class="comic-btn-small" id="aq-reset">Reset</button>
+                    <button class="comic-btn-small" id="aq-help">How to play</button>
+                </div>
+              </aside>
+              <div class="aq-board" id="aq-board" style="grid-template-columns: 34px repeat(${N}, 34px); grid-template-rows: repeat(${N}, 34px) 34px;"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#aq-board');
+        const checkBtn = wrap.querySelector('#aq-check');
+        const resetBtn = wrap.querySelector('#aq-reset');
+        const helpBtn = wrap.querySelector('#aq-help');
+
+        function showHelp(){
+            showModal(`Rules:\n- Click a cell to cycle: Empty → Water → Air (helper).\n- Match row and column water counts.\n- In each aquarium, water must be bottom-anchored: if a cell has water, all cells below it in the same region must also be water.`);
+        }
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalidIdx(idx){ const el=boardEl.children[idx]; if(el) el.classList.add('invalid'); }
+        function idxCell(r,c){ const topOffset = 1; const rowStride = 1 + N; return topOffset + r*rowStride + 1 + c; }
+        function colorForRegion(id){ const palette=['#e3f2fd','#fce4ec','#e8f5e9','#fff3e0','#ede7f6','#f3e5f5','#e0f7fa','#f1f8e9','#e8eaf6','#f9fbe7','#e0f2f1','#fffde7','#ede7f6','#f3e5f5','#e0f7fa','#f1f8e9']; return palette[id%palette.length]; }
+
+        function render(){
+            boardEl.innerHTML = '';
+            // top clues
+            const corner=document.createElement('div'); corner.className='aq-clue'; corner.textContent=''; boardEl.appendChild(corner);
+            for (let c=0;c<N;c++){ const el=document.createElement('div'); el.className='aq-clue'; el.textContent=String(COL[c]); boardEl.appendChild(el); }
+            // rows
+            for (let r=0;r<N;r++){
+                const left=document.createElement('div'); left.className='aq-clue'; left.textContent=String(ROW[r]); boardEl.appendChild(left);
+                for (let c=0;c<N;c++){
+                    const cell=document.createElement('div');
+                    cell.className='aq-cell';
+                    const state=board[r][c];
+                    // Apply water visual first; otherwise show region tint
+                    if (state===WATER){
+                        cell.classList.add('water');
+                        cell.style.background = '';
+                    } else {
+                        if (state===AIR) cell.classList.add('air');
+                        cell.style.background = colorForRegion(REG[r][c]);
+                    }
+                    // draw aquarium borders: thick borders where adjacent region differs
+                    const id = REG[r][c];
+                    const topDiff = r===0 || REG[r-1][c]!==id;
+                    const bottomDiff = r===N-1 || REG[r+1][c]!==id;
+                    const leftDiff = c===0 || REG[r][c-1]!==id;
+                    const rightDiff = c===N-1 || REG[r][c+1]!==id;
+                    cell.style.borderTop = `${topDiff? '3px' : '1px'} solid #2a4365`;
+                    cell.style.borderBottom = `${bottomDiff? '3px' : '1px'} solid #2a4365`;
+                    cell.style.borderLeft = `${leftDiff? '3px' : '1px'} solid #2a4365`;
+                    cell.style.borderRight = `${rightDiff? '3px' : '1px'} solid #2a4365`;
+                    cell.addEventListener('click', ()=>{
+                        const v = board[r][c];
+                        // First click should fill with water
+                        board[r][c] = v===EMPTY ? WATER : (v===WATER ? AIR : EMPTY);
+                        render();
+                    });
+                    boardEl.appendChild(cell);
+                    cellEls[r][c]=cell;
+                }
+            }
+            // bottom spacer
+            const spacer=document.createElement('div'); spacer.className='aq-clue'; spacer.textContent=''; boardEl.appendChild(spacer);
+            for (let c=0;c<N;c++){ const el=document.createElement('div'); el.className='aq-clue'; el.textContent=''; boardEl.appendChild(el); }
+        }
+
+        function validate(live=false){
+            clearInvalid();
+            let ok=true;
+            // row counts
+            for (let r=0;r<N;r++){
+                let cnt=0; for (let c=0;c<N;c++) if (board[r][c]===WATER) cnt++;
+                if (!live && cnt!==ROW[r]){ ok=false; for (let c=0;c<N;c++) if (board[r][c]===WATER) markInvalidIdx(idxCell(r,c)); }
+                if (live && cnt>ROW[r]){ ok=false; for (let c=0;c<N;c++) if (board[r][c]===WATER) markInvalidIdx(idxCell(r,c)); }
+            }
+            // col counts
+            for (let c=0;c<N;c++){
+                let cnt=0; for (let r=0;r<N;r++) if (board[r][c]===WATER) cnt++;
+                if (!live && cnt!==COL[c]){ ok=false; for (let r=0;r<N;r++) if (board[r][c]===WATER) markInvalidIdx(idxCell(r,c)); }
+                if (live && cnt>COL[c]){ ok=false; for (let r=0;r<N;r++) if (board[r][c]===WATER) markInvalidIdx(idxCell(r,c)); }
+            }
+            // aquarium gravity: for each region, in each column, water cells form a bottom segment (no empty below water)
+            const regionCols = new Map();
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++){
+                const id=REG[r][c]; const key=id+":"+c; if (!regionCols.has(key)) regionCols.set(key, []); regionCols.get(key).push(r);
+            }
+            regionCols.forEach(rows=>{
+                rows.sort((a,b)=>a-b);
+                // find lowest row in this column for the region
+                const bottom = rows[rows.length-1];
+                // scan from top to bottom: once we see WATER, no EMPTY allowed below
+                let seenWater=false;
+                for (const r of rows){
+                    const state = board[r][rows.key?0:0]; // placeholder to avoid key; we'll index by column outside map
+                }
+            });
+            // Implement gravity check directly without map
+            for (let c=0;c<N;c++){
+                // group by region per column
+                const groups = new Map();
+                for (let r=0;r<N;r++){
+                    const id=REG[r][c]; if (!groups.has(id)) groups.set(id, []); groups.get(id).push(r);
+                }
+                groups.forEach(rows=>{
+                    rows.sort((a,b)=>a-b); // top to bottom
+                    let seenWater=false;
+                    for (let i=0; i<rows.length; i++){
+                        const r=rows[i];
+                        const st=board[r][c];
+                        if (st===WATER){ seenWater=true; }
+                        else {
+                            // if we have water above and this is empty, then there is empty below water → violation
+                            if (seenWater){ ok=false; markInvalidIdx(idxCell(r,c)); }
+                        }
+                    }
+                });
+            }
+
+            return ok;
+        }
+
+        function isComplete(){ return validate(false); }
+        function checkWin(){ if (isComplete()){ showModal('All aquariums filled correctly!'); setTimeout(onWin, 400); } else { showModal('Row/column counts or gravity rule violated.'); } }
+        function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(EMPTY)); render(); clearInvalid(); }
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
+    }
+
+    // 20) Slitherlink (Day 20)
+    function slitherlinkGame(root, onWin) {
+        root.innerHTML = '';
+        const R=5, C=5; // 5x5 cells
+        // Intermediate puzzle clues (null denotes no clue)
+        const CLUE = [
+            [null,1,2,2,null],
+            [null,null,2,null,null],
+            [null,2,null,3,null],
+            [null,null,null,2,1],
+            [null,3,null,3,3],
+        ];
+        // Edge state grid: horizontal edges (R+1 x C), vertical edges (R x C+1). 0=off,1=on
+        let H = Array.from({length:R+1}, ()=>Array(C).fill(0));
+        let V = Array.from({length:R}, ()=>Array(C+1).fill(0));
+
+        const wrap = document.createElement('div');
+        wrap.className = 'sl-wrapper';
+                wrap.innerHTML = `
+            <h3>Slitherlink</h3>
+            <div class="sl-container">
+              <aside class="sl-sidebar">
+                <div class="sl-info">Draw a single loop. Each numbered cell indicates how many of its four edges belong to the loop. The loop must not branch or cross itself.</div>
+                <div class="sl-controls">
+                    <button class="comic-btn-small" id="sl-check">Check</button>
+                    <button class="comic-btn-small" id="sl-reset">Reset</button>
+                    <button class="comic-btn-small" id="sl-help">How to play</button>
+                </div>
+              </aside>
+              <div class="sl-board" id="sl-board" style="grid-template-columns: repeat(${C*2+1}, 24px); grid-template-rows: repeat(${R*2+1}, 24px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl = wrap.querySelector('#sl-board');
+        const checkBtn = wrap.querySelector('#sl-check');
+        const resetBtn = wrap.querySelector('#sl-reset');
+        const helpBtn = wrap.querySelector('#sl-help');
+
+        function showHelp(){
+            showModal('Toggle edges to form a single loop. Numbers tell how many of the cell\'s edges are part of the loop. No branches, no crossings.');
+        }
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid')); }
+        function markInvalidCell(r,c){ const idx = gridIndexCell(r,c); const el=boardEl.children[idx]; if(el) el.classList.add('invalid'); }
+        // Build board as interleaved points and edges: (2r,2c)=dot; (2r,2c+1)=h edge; (2r+1,2c)=v edge; (2r+1,2c+1)=cell
+        function gridIndexCell(r,c){ return (2*r+1)*(C*2+1) + (2*c+1); }
+        function render(){
+            boardEl.innerHTML = '';
+            for (let rr=0; rr<R*2+1; rr++){
+                for (let cc=0; cc<C*2+1; cc++){
+                    const el=document.createElement('div');
+                    if (rr%2===0 && cc%2===0){ // dot
+                        el.className='sl-dot';
+                    } else if (rr%2===0 && cc%2===1){ // horizontal edge between cells
+                        const r = rr/2, c = (cc-1)/2;
+                        el.className = 'sl-edge h'+(H[r][c]?' on':'');
+                        el.addEventListener('click', ()=>{ H[r][c] = H[r][c]?0:1; render(); });
+                    } else if (rr%2===1 && cc%2===0){ // vertical edge
+                        const r = (rr-1)/2, c = cc/2;
+                        el.className = 'sl-edge v'+(V[r][c]?' on':'');
+                        el.addEventListener('click', ()=>{ V[r][c] = V[r][c]?0:1; render(); });
+                    } else { // cell
+                        const r = (rr-1)/2, c = (cc-1)/2;
+                        el.className='sl-cell';
+                        const clue = CLUE[r][c];
+                        el.textContent = clue==null? '' : String(clue);
+                    }
+                    boardEl.appendChild(el);
+                }
+            }
+        }
+
+        function validate(){
+            clearInvalid();
+            let ok=true;
+            // Check clues
+            for (let r=0;r<R;r++){
+                for (let c=0;c<C;c++){
+                    const clue=CLUE[r][c]; if (clue==null) continue;
+                    const cnt = (H[r][c]?1:0) + (H[r+1][c]?1:0) + (V[r][c]?1:0) + (V[r][c+1]?1:0);
+                    if (cnt!==clue){ ok=false; markInvalidCell(r,c); }
+                }
+            }
+            // Graph checks: degree 0 or 2 at each dot; single loop (one component, no branches)
+            const deg = Array.from({length:R+1}, ()=>Array(C+1).fill(0));
+            for (let r=0;r<=R;r++) for (let c=0;c<=C;c++){
+                let d=0;
+                // Adjacent edges to dot (r,c): left/right from H, up/down from V
+                if (c>0 && H[r][c-1]) d++;      // left horizontal
+                if (c<C && H[r][c]) d++;        // right horizontal
+                if (r>0 && V[r-1][c]) d++;      // up vertical
+                if (r<R && V[r][c]) d++;        // down vertical
+                deg[r][c]=d;
+                if (d!==0 && d!==2) ok=false;
+            }
+            // Find any dot with degree>0 and DFS
+            function hasH(rr, cc){ return rr>=0 && rr<=R && cc>=0 && cc<C && H[rr][cc]===1; }
+            function hasV(rr, cc){ return rr>=0 && rr<R && cc>=0 && cc<=C && V[rr][cc]===1; }
+            function neighborsDot(r,c){
+                const res=[];
+                // left/right via H
+                if (c>0 && hasH(r, c-1)) res.push([r, c-1]);
+                if (c<C && hasH(r, c))   res.push([r, c+1]);
+                // up/down via V
+                if (r>0 && hasV(r-1, c)) res.push([r-1, c]);
+                if (r<R && hasV(r, c))   res.push([r+1, c]);
+                return res;
+            }
+            const visited=new Set();
+            let sr=-1, sc=-1;
+            for (let r=0;r<=R;r++){
+                for (let c=0;c<=C;c++){
+                    if (deg[r][c]>0){ sr=r; sc=c; break; }
+                }
+                if (sr!==-1) break;
+            }
+            if (sr!==-1){
+                const stack=[[sr,sc]];
+                visited.add(sr+","+sc);
+                while(stack.length){
+                    const [r,c]=stack.pop();
+                    for (const [nr,nc] of neighborsDot(r,c)){
+                        const k=nr+","+nc; if(!visited.has(k)){ visited.add(k); stack.push([nr,nc]); }
+                    }
+                }
+                // All dots with degree>0 must be visited
+                for (let r=0;r<=R;r++) for (let c=0;c<=C;c++){
+                    if (deg[r][c]>0 && !visited.has(r+","+c)) ok=false;
+                }
+            }
+            return ok;
+        }
+
+        function isComplete(){ return validate(); }
+        function checkWin(){ if (isComplete()){ showModal('Loop complete!'); setTimeout(onWin, 400); } else { showModal('Edges conflict: check clues or loop continuity.'); } }
+        function reset(){ H = Array.from({length:R+1}, ()=>Array(C).fill(0)); V = Array.from({length:R}, ()=>Array(C+1).fill(0)); render(); clearInvalid(); }
+
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', checkWin);
+    }
+
+    // 21) Binairo (Day 21) - 14x14
+    function binairoGame(root, onWin){
+        root.innerHTML='';
+        const N=10;
+        // 0=empty, 1=black, 2=red
+        let G = Array.from({length:N}, ()=>Array(N).fill(0));
+        // Clues from provided 10x10 pattern (1=R,2=B,0=empty). Internal: 1=black, 2=red.
+        const CLUES = [
+            // row 0: 1000020110
+            [0,0,2],[0,5,1],[0,7,2],[0,8,2],
+            // row 1: 0220000010
+            [1,1,1],[1,2,1],[1,8,2],
+            // row 2: 0010102000
+            [2,2,2],[2,4,2],[2,6,1],
+            // row 3: 1002020100
+            [3,0,2],[3,3,1],[3,5,1],[3,7,2],
+            // row 4: 1000000000
+            [4,0,2],
+            // row 5: 0000000100
+            [5,7,2],
+            // row 6: 0001000000
+            [6,3,2],
+            // row 7: 0000000000
+            // none
+            // row 8: 0200002000
+            [8,1,1],[8,6,1],
+            // row 9: 0002020000
+            [9,3,1],[9,5,1],
+        ];
+        for (const [r,c,v] of CLUES){ G[r][c]=v; }
+
+        const wrap=document.createElement('div');
+        wrap.className='bn-wrapper';
+        wrap.innerHTML=`
+            <h3>Binairo 10×10</h3>
+            <div class="bn-container">
+                            <aside class="bn-sidebar">
+                <div class="bn-info">Fill the grid with black and red circles. No three consecutive identical tokens in any row or column. Each row and column contains equal numbers of black and red. All rows and columns must be unique.</div>
+                                <div class="bn-controls">
+                                    <button class="comic-btn-small" id="bn-check">Check</button>
+                                    <button class="comic-btn-small" id="bn-reset">Reset</button>
+                                    <button class="comic-btn-small" id="bn-help">How to play</button>
+                                </div>
+              </aside>
+              <div class="bn-board" id="bn-board" style="grid-template-columns: repeat(${N}, 32px); grid-template-rows: repeat(${N}, 32px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl=wrap.querySelector('#bn-board');
+        const checkBtn=wrap.querySelector('#bn-check');
+        const resetBtn=wrap.querySelector('#bn-reset');
+        const helpBtn=wrap.querySelector('#bn-help');
+
+        function showHelp(){
+            showModal('Click cells to toggle between empty → Black → Red. You cannot change the pre-filled clues. Check enforces: equal Blacks/Reds in each row/col, no three consecutive identical, and unique rows/cols.');
+        }
+
+        function render(){
+            boardEl.innerHTML='';
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const el=document.createElement('div');
+                    const v=G[r][c];
+                    el.className='bn-cell'+(CLUES.some(x=>x[0]===r&&x[1]===c)?' fixed':'');
+                    if (v!==0){
+                        const token=document.createElement('span');
+                        token.className='bn-token '+(v===1?'black':'red');
+                        el.appendChild(token);
+                    }
+                    if (!CLUES.some(x=>x[0]===r&&x[1]===c)){
+                        el.addEventListener('click',()=>{
+                            G[r][c] = (G[r][c]+1)%3; // 0->1->2->0
+                            render();
+                        });
+                    }
+                    boardEl.appendChild(el);
+                }
+            }
+        }
+
+        function markRowInvalid(r){
+            for (let c=0;c<N;c++){
+                const idx=r*N+c; const el=boardEl.children[idx]; if(el) el.classList.add('invalid');
+            }
+        }
+        function markColInvalid(c){
+            for (let r=0;r<N;r++){
+                const idx=r*N+c; const el=boardEl.children[idx]; if(el) el.classList.add('invalid');
+            }
+        }
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid')); }
+
+        function noThreeConsecutive(arr){
+            for (let i=0;i<=arr.length-3;i++){
+                const a=arr[i], b=arr[i+1], d=arr[i+2];
+                if (a!==0 && a===b && b===d) return false;
+            }
+            return true;
+        }
+
+        function equalCounts(arr){
+            // Only enforce when row fully filled (no zeros meaning empty); otherwise allow partial
+            if (arr.some(v=>v===0)) return true;
+            let z=0, o=0;
+            for (const v of arr){ if (v===1) z++; else if (v===2) o++; }
+            return z===o;
+        }
+
+        function uniqueRows(){
+            const seen=new Set();
+            for (let r=0;r<N;r++){
+                if (G[r].some(v=>v===0)) continue; // only check fully filled rows
+                const key=G[r].join(',');
+                if (seen.has(key)) return false;
+                seen.add(key);
+            }
+            return true;
+        }
+        function uniqueCols(){
+            const seen=new Set();
+            for (let c=0;c<N;c++){
+                let col=[]; let full=true;
+                for (let r=0;r<N;r++){ const v=G[r][c]; if(v===0) full=false; col.push(v); }
+                if (!full) continue;
+                const key=col.join(',');
+                if (seen.has(key)) return false;
+                seen.add(key);
+            }
+            return true;
+        }
+
+        function validate(){
+            clearInvalid();
+            let ok=true;
+            // rows
+            for (let r=0;r<N;r++){
+                const row=[...G[r]];
+                if (!noThreeConsecutive(row)){ ok=false; markRowInvalid(r); }
+                if (!equalCounts(row)){ ok=false; markRowInvalid(r); }
+            }
+            // cols
+            for (let c=0;c<N;c++){
+                const col=[]; for (let r=0;r<N;r++) col.push(G[r][c]);
+                if (!noThreeConsecutive(col)){ ok=false; markColInvalid(c); }
+                if (!equalCounts(col)){ ok=false; markColInvalid(c); }
+            }
+            if (!uniqueRows()) ok=false;
+            if (!uniqueCols()) ok=false;
+            return ok;
+        }
+
+        function isComplete(){
+            // all filled and valid
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (G[r][c]===0) return false;
+            return validate();
+        }
+
+        function check(){ if (validate()){ if (isComplete()){ showModal('Binairo complete!'); setTimeout(onWin, 400); } else { showModal('Looks good so far. Keep going!'); } } else { showModal('Some rows/cols violate rules.'); } }
+        function reset(){ G = Array.from({length:N}, ()=>Array(N).fill(0)); for (const [r,c,v] of CLUES){ G[r][c]=v; } render(); clearInvalid(); }
+
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', check);
+    }
+
+    // 24) Sudoku (Day 24) - Hard 9x9
+    function sudokuGame(root, onWin){
+        root.innerHTML='';
+        const N=9;
+        // Hard puzzle (0 = empty). Source: curated hard, single-solution.
+        const PUZ = [
+            // Based on provided image
+            [0,0,9, 0,2,0, 0,0,1],
+            [0,0,1, 0,4,0, 9,0,0],
+            [0,5,6, 0,0,0, 0,0,0],
+
+            [4,0,0, 0,1,0, 0,6,0],
+            [9,0,0, 7,0,0, 3,0,0],
+            [0,0,0, 4,5,0, 0,0,7],
+
+            [0,0,0, 9,0,0, 6,8,0],
+            [0,0,0, 2,0,0, 0,0,4],
+            [7,0,0, 8,0,0, 0,0,0],
+        ];
+        let G = PUZ.map(row=>row.slice());
+
+        const wrap=document.createElement('div');
+        wrap.className='sdk-wrapper';
+        wrap.innerHTML=`
+            <h3>Sudoku (Hard)</h3>
+            <div class="sdk-container">
+              <aside class="sdk-sidebar">
+                <div class="sdk-info">Fill digits 1–9 so each row, column, and 3×3 box contains each number exactly once. Fixed clues cannot be changed.</div>
+                <div class="sdk-controls">
+                  <button class="comic-btn-small" id="sdk-check">Check</button>
+                  <button class="comic-btn-small" id="sdk-reset">Reset</button>
+                  <button class="comic-btn-small" id="sdk-help">How to play</button>
+                </div>
+                <div class="sdk-pad" id="sdk-pad">
+                  <button data-n="1">1</button>
+                  <button data-n="2">2</button>
+                  <button data-n="3">3</button>
+                  <button data-n="4">4</button>
+                  <button data-n="5">5</button>
+                  <button data-n="6">6</button>
+                  <button data-n="7">7</button>
+                  <button data-n="8">8</button>
+                  <button data-n="9">9</button>
+                  <button data-n="0" class="erase">Erase</button>
+                </div>
+              </aside>
+              <div class="sdk-board" id="sdk-board" style="grid-template-columns: repeat(${N}, 36px); grid-template-rows: repeat(${N}, 36px);"></div>
+            </div>
+        `;
+        root.appendChild(wrap);
+
+        const boardEl=wrap.querySelector('#sdk-board');
+        const checkBtn=wrap.querySelector('#sdk-check');
+        const resetBtn=wrap.querySelector('#sdk-reset');
+        const helpBtn=wrap.querySelector('#sdk-help');
+        const padEl=wrap.querySelector('#sdk-pad');
+
+        let sel=[-1,-1];
+        let hiVal=0; // current highlighted digit (0 = none)
+
+        function isFixed(r,c){ return PUZ[r][c]!==0; }
+        function showHelp(){
+            showModal('Click a cell, then use the number pad or keyboard 1–9 to set a digit. Use Erase to clear. Rows, columns, and 3×3 boxes must contain digits 1–9 without repeats.');
+        }
+        function clearInvalid(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('invalid','selected')); }
+        function clearSame(){ Array.from(boardEl.children).forEach(el=>el.classList.remove('same')); }
+        function applyHighlight(){
+            clearSame();
+            if (hiVal>0){
+                for (let r=0;r<N;r++){
+                    for (let c=0;c<N;c++){
+                        if (G[r][c]===hiVal){ const idx=r*N+c; boardEl.children[idx]?.classList.add('same'); }
+                    }
+                }
+            }
+        }
+        function highlightSame(val){ hiVal = val||0; applyHighlight(); }
+        function render(){
+            boardEl.innerHTML='';
+            for (let r=0;r<N;r++){
+                for (let c=0;c<N;c++){
+                    const el=document.createElement('div');
+                    el.className='sdk-cell';
+                    if (isFixed(r,c)) el.classList.add('fixed');
+                    if (sel[0]===r && sel[1]===c) el.classList.add('selected');
+                    el.textContent = G[r][c]===0? '' : String(G[r][c]);
+                    el.addEventListener('click',()=>{ sel=[r,c]; renderHighlight(); highlightSame(G[r][c]); });
+                    // Box thick borders
+                    if (c%3===0) el.style.borderLeftWidth='2px';
+                    if (r%3===0) el.style.borderTopWidth='2px';
+                    if ((c+1)%3===0) el.style.borderRightWidth='2px';
+                    if ((r+1)%3===0) el.style.borderBottomWidth='2px';
+                    boardEl.appendChild(el);
+                }
+            }
+            applyHighlight();
+        }
+        function renderHighlight(){
+            Array.from(boardEl.children).forEach((el,idx)=>{
+                const r=Math.floor(idx/N), c=idx%N;
+                el.classList.toggle('selected', sel[0]===r && sel[1]===c);
+            });
+        }
+
+        function markRowInvalid(r){ for (let c=0;c<N;c++){ const idx=r*N+c; boardEl.children[idx]?.classList.add('invalid'); } }
+        function markColInvalid(c){ for (let r=0;r<N;r++){ const idx=r*N+c; boardEl.children[idx]?.classList.add('invalid'); } }
+        function markBoxInvalid(br,bc){
+            for (let r=br*3;r<br*3+3;r++) for (let c=bc*3;c<bc*3+3;c++){ const idx=r*N+c; boardEl.children[idx]?.classList.add('invalid'); }
+        }
+        function validGroup(vals){
+            const seen=new Set();
+            for (const v of vals){ if (v===0) continue; if (seen.has(v)) return false; seen.add(v); }
+            return true;
+        }
+        function validate(){
+            clearInvalid();
+            let ok=true;
+            // rows
+            for (let r=0;r<N;r++){ if (!validGroup(G[r])){ ok=false; markRowInvalid(r); } }
+            // cols
+            for (let c=0;c<N;c++){ const col=[]; for (let r=0;r<N;r++) col.push(G[r][c]); if (!validGroup(col)){ ok=false; markColInvalid(c); } }
+            // boxes
+            for (let br=0;br<3;br++) for (let bc=0;bc<3;bc++){
+                const box=[]; for (let r=br*3;r<br*3+3;r++) for (let c=bc*3;c<bc*3+3;c++) box.push(G[r][c]);
+                if (!validGroup(box)){ ok=false; markBoxInvalid(br,bc); }
+            }
+            return ok;
+        }
+        function isComplete(){
+            for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (G[r][c]===0) return false;
+            return validate();
+        }
+        function setCellVal(n){
+            const [r,c]=sel; if (r<0||c<0) return; if (isFixed(r,c)) return; G[r][c]=n; render(); highlightSame(n); }
+
+        function reset(){ G = PUZ.map(row=>row.slice()); sel=[-1,-1]; render(); clearInvalid(); }
+        function check(){ if (validate()){ if (isComplete()){ showModal('Sudoku complete!'); setTimeout(onWin, 400); } else { showModal('Valid so far. Keep solving!'); } } else { showModal('Conflicts found in row/col/box.'); } }
+
+        // Events
+        padEl.addEventListener('click', (e)=>{
+            const btn=e.target.closest('button'); if(!btn) return; const n=parseInt(btn.dataset.n,10);
+            if(!Number.isInteger(n)) return;
+            if (sel[0]===-1 || sel[1]===-1){
+                if (n>0) highlightSame(n); else highlightSame(0);
+            } else {
+                setCellVal(n);
+            }
+        });
+        window.addEventListener('keydown',(e)=>{
+            if (!boardEl.contains(document.activeElement)){
+                const k=e.key;
+                if (k>='1'&&k<='9') { const n=parseInt(k,10); setCellVal(n); }
+                else if (k==='0' || k==='Backspace' || k==='Delete') { setCellVal(0); highlightSame(0); }
+            }
+        });
+
+        render();
+        helpBtn.addEventListener('click', showHelp);
+        resetBtn.addEventListener('click', reset);
+        checkBtn.addEventListener('click', check);
     }
 });
