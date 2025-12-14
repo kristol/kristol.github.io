@@ -2601,13 +2601,17 @@ Rules:
         // Givens inferred from the base screenshot (visible numbers)
         const GIVENS = [
             [0,3,6],
-            // removed c3r2 (was [1,2,5])
             [2,5,5],
             [4,1,5], [4,3,3],
-            // removed c2r7 (was [6,1,6])
-            // updated: add c3r7 and c6r5
-            [6,2,3], // c3r7
-            [4,5,4]  // c6r5
+            [6,2,3],
+            [4,5,4],
+            // Additional givens to ease the start, consistent with SOL
+            [0,0,7], // row 1 col 1
+            [1,3,4], // row 2 col 4
+            [2,0,3], // row 3 col 1
+            [3,6,2], // row 4 col 7
+            [5,0,4], // row 6 col 1
+            [6,5,1]  // row 7 col 6
         ];
 
         let board = Array.from({length:N}, ()=>Array(N).fill(0));
@@ -2637,7 +2641,7 @@ Rules:
         const helpBtn = wrap.querySelector('#fu-help');
 
         function showHelp(){
-            showModal(`Goal: Complete the grid with digits 1–${N}.\nRules:\n- No repeats in any row or column.\n- Inequalities between adjacent cells must hold (A < B or A > B).\nControls:\n- Click a cell to cycle 0→1→…→${N}. Given cells are fixed.`);
+            showModal(`Goal: Complete the grid with digits 1–${N}.\nRules:\n- No repeats in any row or column.\n- Inequalities between adjacent cells must hold (A < B or A > B).\nControls:\n- Tap a cell to cycle 1→…→${N}→empty. Given cells are fixed.`);
         }
 
         function isGiven(r,c){ return GIVENS.some(g=>g[0]===r && g[1]===c); }
@@ -2653,7 +2657,10 @@ Rules:
                     cell.textContent = board[r][c] ? String(board[r][c]) : '';
                     cell.addEventListener('click', ()=>{
                         if (isGiven(r,c)) return;
-                        board[r][c] = (board[r][c] % N) + 1; // cycle 1..N
+                        const v = board[r][c];
+                        if (v === 0) board[r][c] = 1; // start at 1
+                        else if (v >= N) board[r][c] = 0; // after N go to empty
+                        else board[r][c] = v + 1; // increment
                         render();
                         validate(true);
                     });
@@ -2684,7 +2691,16 @@ Rules:
         }
 
         function clearInvalid(){ Array.from(boardEl.querySelectorAll('.fu-cell')).forEach(el=>el.classList.remove('invalid')); }
-        function markInvalid(r,c){ const idx = r*(N*2) + c*2; const cell = boardEl.children[idx]; if(cell) cell.classList.add('invalid'); }
+        function markInvalid(r,c){
+            // Each rendered row contributes 4*N elements:
+            // - For cells + right spacers: 2*N elements (cell, spacer)
+            // - For below inequalities + spacers: 2*N elements
+            // Cells are at even indices within the first 2*N slice of the row block.
+            const rowBlockStart = r * (4 * N);
+            const idx = rowBlockStart + (c * 2);
+            const cell = boardEl.children[idx];
+            if (cell) cell.classList.add('invalid');
+        }
 
         function validate(live=false){
             clearInvalid();
@@ -2712,8 +2728,18 @@ Rules:
             for (const [r,c,dr,dc,op] of INEQ){
                 const a=board[r][c]; const b=board[r+dr][c+dc];
                 if (a && b){
-                    if (op==='<' && !(a<b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
-                    if (op==='>' && !(a>b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                    const isVertical = (dr===1 && dc===0);
+                    if (!isVertical){
+                        // Horizontal: '<' means left < right, '>' means left > right
+                        if (op==='<' && !(a<b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                        if (op==='>' && !(a>b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                    } else {
+                        // Vertical per user specification:
+                        // '˅' stored as '<' means top > bottom
+                        // '˄' stored as '>' means top < bottom
+                        if (op==='<' && !(a>b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                        if (op==='>' && !(a<b)){ ok=false; markInvalid(r,c); markInvalid(r+dr,c+dc); }
+                    }
                 }
             }
             if (!live){
@@ -2730,6 +2756,7 @@ Rules:
             else { showModal('Some rules are broken. Check rows, columns, and inequalities.'); }
         }
         function reset(){ board = Array.from({length:N}, ()=>Array(N).fill(0)); for (const [r,c,v] of GIVENS) board[r][c]=v; render(); clearInvalid(); }
+
 
         render();
         helpBtn.addEventListener('click', showHelp);
