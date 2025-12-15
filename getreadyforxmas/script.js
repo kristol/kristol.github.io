@@ -2986,7 +2986,7 @@ Rules:
         const helpBtn = wrap.querySelector('#sk-help');
 
         function showHelp(){
-            showModal(`Rules:\n- Place 1–${N} in each cell.\n- No repeats in any row or column.\n- Clues on the edges tell how many buildings are visible looking inwards. A taller building hides any shorter ones behind it.\n- Blue givens are fixed.\nControls:\n- Click a non-given cell to cycle its value.`);
+            showModal(`Rules:\n- Place 1–${N} in each cell.\n- No repeats in any row or column.\n- Clues on the edges tell how many buildings are visible looking inwards. A taller building hides any shorter ones behind it.\n- Blue givens are fixed.\nControls:\n- Tap a non-given cell to cycle 1→…→${N}→empty.`);
         }
 
         function clearInvalid(){
@@ -3021,7 +3021,10 @@ Rules:
                         cell.classList.add('given');
                     } else {
                         cell.addEventListener('click', ()=>{
-                            board[r][c] = (board[r][c] % N) + 1; // 0->1..N->1
+                            const v = board[r][c];
+                            if (v === 0) board[r][c] = 1; // start at 1
+                            else if (v >= N) board[r][c] = 0; // after N go to empty
+                            else board[r][c] = v + 1;
                             render();
                             validate(true);
                         });
