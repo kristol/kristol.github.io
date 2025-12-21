@@ -4304,7 +4304,8 @@ Tips:
         const N=10;
         // 0=empty, 1=black, 2=red
         let G = Array.from({length:N}, ()=>Array(N).fill(0));
-        // Clues from provided 10x10 pattern (1=R,2=B,0=empty). Internal: 1=black, 2=red.
+        // Clues from provided 10x10 pattern (1=black,2=red,0=empty). Internal: 1=black, 2=red.
+        // More clues added for easier solving
         const CLUES = [
             // row 0: 1000020110
             [0,0,2],[0,5,1],[0,7,2],[0,8,2],
@@ -4315,17 +4316,17 @@ Tips:
             // row 3: 1002020100
             [3,0,2],[3,3,1],[3,5,1],[3,7,2],
             // row 4: 1000000000
-            [4,0,2],
+            [4,0,2],[4,3,1],[4,6,2],
             // row 5: 0000000100
-            [5,7,2],
+            [5,1,1],[5,4,2],[5,7,2],
             // row 6: 0001000000
-            [6,3,2],
+            [6,3,2],[6,6,1],[6,8,2],
             // row 7: 0000000000
-            // none
+            [7,2,1],[7,5,2],[7,9,1],
             // row 8: 0200002000
-            [8,1,1],[8,6,1],
+            [8,1,1],[8,4,2],[8,6,1],[8,9,2],
             // row 9: 0002020000
-            [9,3,1],[9,5,1],
+            [9,0,1],[9,3,1],[9,5,1],[9,7,2],
         ];
         for (const [r,c,v] of CLUES){ G[r][c]=v; }
 
