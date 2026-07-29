@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRISTOL ARCADE</title>
+    <meta
+      name="description"
+      content="Pick a site. Enter the game. Small weird corners of the internet."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="crt" aria-hidden="true">
+      <canvas id="starfield"></canvas>
+      <div class="scanlines"></div>
+      <div class="vignette"></div>
+      <div class="floor-grid"></div>
+    </div>
+
+    <main class="stage">
+      <header class="hero">
+        <p class="coin blink">INSERT COIN</p>
+        <h1 class="brand">
+          <span class="brand-glow">KRISTOL</span>
+          <span class="brand-sub">ARCADE</span>
+        </h1>
+        <p class="tagline">
+          Select a cabinet. Press start. Leave when you get bored.
+        </p>
+      </header>
+
+      <section class="select" aria-label="Site select">
+        <p class="select-label">
+          <span class="cursor">▶</span> SELECT YOUR SITE
+        </p>
+
+        <nav class="cabinets" id="cabinets">
+          <a class="cabinet" href="bsExcuses/" data-index="0">
+            <span class="cab-num">01</span>
+            <span class="cab-body">
+              <span class="cab-title">Gatya Kifogás</span>
+              <span class="cab-desc">Bullshit excuse generator — when you need out.</span>
+            </span>
+            <span class="cab-go">PLAY ▸</span>
+          </a>
+
+          <a class="cabinet" href="getreadyforxmas/" data-index="1">
+            <span class="cab-num">02</span>
+            <span class="cab-body">
+              <span class="cab-title">Xmas Challenge</span>
+              <span class="cab-desc">Daily puzzles &amp; challenges. Ali's calendar.</span>
+            </span>
+            <span class="cab-go">PLAY ▸</span>
+          </a>
+
+          <a class="cabinet" href="hol_legyen_a_buli/" data-index="2">
+            <span class="cab-num">03</span>
+            <span class="cab-body">
+              <span class="cab-title">Hol legyen a buli?</span>
+              <span class="cab-desc">Quiz your vibe. Find the night.</span>
+            </span>
+            <span class="cab-go">PLAY ▸</span>
+          </a>
+
+          <a class="cabinet" href="november22/" data-index="3">
+            <span class="cab-num">04</span>
+            <span class="cab-body">
+              <span class="cab-title">November 22</span>
+              <span class="cab-desc">Party invite + mystery hunt side quest.</span>
+            </span>
+            <span class="cab-go">PLAY ▸</span>
+          </a>
+        </nav>
+
+        <p class="hint">↑↓ or click · ENTER to start</p>
+      </section>
+
+      <footer class="ticker" aria-hidden="true">
+        <div class="ticker-track">
+          <span>FREE HOSTING VIA GITHUB PAGES · NO HIGH SCORES · NO ADS · JUST WEIRD LITTLE SITES · ADD MORE ANYTIME · </span>
+          <span>FREE HOSTING VIA GITHUB PAGES · NO HIGH SCORES · NO ADS · JUST WEIRD LITTLE SITES · ADD MORE ANYTIME · </span>
+        </div>
+      </footer>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
